@@ -17,13 +17,6 @@ function RaceTrack({ racers }) {
     return `${place}th Place.`;
   };
 
-  // Calculate mock WPM (we'll implement real WPM calculation later)
-  const getWPM = (progress) => {
-    // For now, just generate a random WPM between 15-35
-    // Later we'll calculate this based on actual typing speed
-    return Math.floor(15 + (Math.random() * 20));
-  };
-
   return (
     <div className="race-track-container">
       <div className="race-track">
@@ -41,7 +34,7 @@ function RaceTrack({ racers }) {
                 <span className="racer-name">{racer.name}</span>
               </div>
               <div className="finish-line-stats">
-                <span className="wpm-display">{getWPM(racer.progress)} wpm</span>
+                <span className="wpm-display">{racer.wpm || 0} wpm</span>
                 {racer.progress >= 100 && (
                   <span className="place-display">{getPlace(racer)}</span>
                 )}

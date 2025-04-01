@@ -16,6 +16,7 @@ function App() {
   const [myProgress, setMyProgress] = useState(0)
   const [customText, setCustomText] = useState('') // State for the text area
   const [typedText, setTypedText] = useState('') // Add state for the input field content
+  const [myWpm, setMyWpm] = useState(0) // Add state for WPM
 
   useEffect(() => {
     function onConnect() {
@@ -35,6 +36,7 @@ function App() {
       setMyProgress(0)
       setRaceState('waiting') // Reset state
       setCustomText('')
+      setMyWpm(0) // Reset WPM
     }
 
     function onReceiveText(text) {
@@ -69,19 +71,20 @@ function App() {
     }
   }, [])
 
-  const handleTypingProgress = (progress, currentInput) => {
+  const handleTypingProgress = (progress, currentInput, wpm) => {
     if (raceState !== 'racing') return
 
     setTypedText(currentInput) // Update local state from TypingArea
     setMyProgress(progress)
+    setMyWpm(wpm) // Update WPM state
     // Update local racer state immediately for responsiveness
     setRacers(currentRacers =>
       currentRacers.map(racer =>
-        racer.id === socket.id ? { ...racer, progress: progress } : racer
+        racer.id === socket.id ? { ...racer, progress: progress, wpm: wpm } : racer
       )
     )
     // Send progress update to the server
-    socket.emit('progress_update', { progress })
+    socket.emit('progress_update', { progress, wpm })
   }
 
   // Handler for the Start Race button
@@ -123,8 +126,8 @@ function App() {
           <TypingArea
             textToType={textToType}
             onProgress={handleTypingProgress}
-            typedText={typedText} // Pass state down
-            setTypedText={setTypedText} // Pass setter down
+            typedText={typedText}
+            setTypedText={setTypedText}
             key={textToType}
           />
         </>

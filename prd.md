@@ -61,7 +61,13 @@
   - Click-to-focus anywhere in typing area
   - Disabled autocorrect, spellcheck, and autocomplete
   - Dark theme optimized for readability
-- Real-time WPM and accuracy calculations
+- Real-time WPM and accuracy calculations:
+  - WPM calculation starts from first keystroke
+  - Words counted based on whitespace separation
+  - Updates in real-time as user types
+  - Resets when starting new race
+  - Shows 0 WPM when not typing
+  - Displays at finish line for each racer
 - Difficulty levels based on text complexity
 
 #### 3.3.2 Race Progress Visualization

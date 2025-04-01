@@ -7,6 +7,8 @@ function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [isCurrentWordIncorrect, setIsCurrentWordIncorrect] = useState(false);
   const [maxProgress, setMaxProgress] = useState(0); // Track maximum progress achieved
+  const [startTime, setStartTime] = useState(null);
+  const [wpm, setWpm] = useState(0);
   const inputRef = useRef(null);
 
   // Focus the input when the component mounts or when textToType changes
@@ -17,7 +19,22 @@ function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
     setTypedText('');
     setIsCurrentWordIncorrect(false);
     setMaxProgress(0); // Reset max progress when text changes
+    setStartTime(null);
+    setWpm(0);
   }, [textToType, setTypedText]);
+
+  // Calculate WPM
+  useEffect(() => {
+    if (!startTime || !typedText) {
+      setWpm(0);
+      return;
+    }
+
+    const timeElapsed = (Date.now() - startTime) / 1000 / 60; // Convert to minutes
+    const wordsTyped = typedText.trim().split(/\s+/).length;
+    const currentWpm = Math.round(wordsTyped / timeElapsed);
+    setWpm(currentWpm);
+  }, [typedText, startTime]);
 
   // Also focus when clicking anywhere in the typing area container
   const handleContainerClick = () => {
@@ -52,9 +69,14 @@ function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
     const currentInput = event.target.value;
     setTypedText(currentInput);
 
+    // Set start time on first input if not set
+    if (!startTime) {
+      setStartTime(Date.now());
+    }
+
     // Calculate and update progress
     const progress = calculateProgress(currentInput);
-    onProgress(progress, currentInput);
+    onProgress(progress, currentInput, wpm); // Pass WPM to parent
 
     // Check if the current word being typed has errors
     const sourceWords = textToType.split(/(\s+)/);

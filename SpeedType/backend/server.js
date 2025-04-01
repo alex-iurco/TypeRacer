@@ -66,6 +66,7 @@ io.on('connection', (socket) => {
       // Only update progress if there is an active race text
       if (currentRaceText !== null) {
           racers[socket.id].progress = data.progress;
+          racers[socket.id].wpm = data.wpm; // Add WPM to racer data
           io.emit('race_update', Object.values(racers));
       } else {
           console.log(`Progress update from ${socket.id} ignored, no active race.`);

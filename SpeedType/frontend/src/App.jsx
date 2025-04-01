@@ -4,9 +4,11 @@ import './App.css'
 import RaceTrack from './components/RaceTrack'
 import TypingArea from './components/TypingArea'
 
-// Connect to the backend server
-// Make sure the backend server is running on this address
-const socket = io('http://localhost:3001')
+// Connect to the backend server through ngrok
+const socket = io('https://f001-50-175-124-186.ngrok-free.app', {
+  secure: true,
+  rejectUnauthorized: false // Only use this in development
+})
 
 function App() {
   const [isConnected, setIsConnected] = useState(socket.connected)

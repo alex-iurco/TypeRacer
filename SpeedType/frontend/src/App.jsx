@@ -7,7 +7,13 @@ import TypingArea from './components/TypingArea'
 // Connect to the backend server through ngrok
 const socket = io('https://bf5d-50-175-124-186.ngrok-free.app', {
   secure: true,
-  rejectUnauthorized: false // Only use this in development
+  rejectUnauthorized: false, // Only use this in development
+  transports: ['websocket', 'polling'],
+  withCredentials: true,
+  autoConnect: true,
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000
 })
 
 function App() {

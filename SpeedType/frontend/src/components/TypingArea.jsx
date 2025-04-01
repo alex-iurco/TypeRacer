@@ -9,32 +9,33 @@ function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
   const [maxProgress, setMaxProgress] = useState(0); // Track maximum progress achieved
   const [startTime, setStartTime] = useState(null);
   const [wpm, setWpm] = useState(0);
+  const [maxWordsTyped, setMaxWordsTyped] = useState(0);
   const inputRef = useRef(null);
 
-  // Focus the input when the component mounts or when textToType changes
+  // Reset WPM and start time when text changes
   useEffect(() => {
     if (inputRef.current) {
       inputRef.current.focus();
     }
     setTypedText('');
     setIsCurrentWordIncorrect(false);
-    setMaxProgress(0); // Reset max progress when text changes
+    setMaxProgress(0);
     setStartTime(null);
     setWpm(0);
+    setMaxWordsTyped(0);
   }, [textToType, setTypedText]);
 
-  // Calculate WPM
+  // Calculate WPM based on maximum words typed
   useEffect(() => {
-    if (!startTime || !typedText) {
+    if (!startTime || maxWordsTyped === 0) {
       setWpm(0);
       return;
     }
 
     const timeElapsed = (Date.now() - startTime) / 1000 / 60; // Convert to minutes
-    const wordsTyped = typedText.trim().split(/\s+/).length;
-    const currentWpm = Math.round(wordsTyped / timeElapsed);
+    const currentWpm = Math.round(maxWordsTyped / timeElapsed);
     setWpm(currentWpm);
-  }, [typedText, startTime]);
+  }, [maxWordsTyped, startTime]);
 
   // Also focus when clicking anywhere in the typing area container
   const handleContainerClick = () => {
@@ -44,7 +45,6 @@ function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
   };
 
   const calculateProgress = (currentInput) => {
-    // Count correctly typed characters
     let correctChars = 0;
     for (let i = 0; i < currentInput.length && i < textToType.length; i++) {
       if (currentInput[i] === textToType[i]) {
@@ -52,16 +52,13 @@ function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
       }
     }
     
-    // Calculate current progress based on correct characters
     const currentProgress = Math.min(100, (correctChars / textToType.length) * 100);
     
-    // Only update if we've typed more correct characters than before
     if (currentProgress > maxProgress) {
       setMaxProgress(currentProgress);
       return currentProgress;
     }
     
-    // Otherwise return the previous maximum progress
     return maxProgress;
   };
 
@@ -76,11 +73,26 @@ function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
 
     // Calculate and update progress
     const progress = calculateProgress(currentInput);
-    onProgress(progress, currentInput, wpm); // Pass WPM to parent
+    
+    // Calculate current words typed correctly
+    let currentWordsTyped = 0;
+    const sourceWords = textToType.split(/\s+/);
+    const typedWords = currentInput.split(/\s+/);
+    
+    for (let i = 0; i < typedWords.length && i < sourceWords.length; i++) {
+      if (typedWords[i] === sourceWords[i]) {
+        currentWordsTyped++;
+      }
+    }
+
+    // Update max words typed if current is higher
+    if (currentWordsTyped > maxWordsTyped) {
+      setMaxWordsTyped(currentWordsTyped);
+    }
+
+    onProgress(progress, currentInput, wpm);
 
     // Check if the current word being typed has errors
-    const sourceWords = textToType.split(/(\s+)/);
-    const typedWords = currentInput.split(/(\s+)/);
     const currentSourceWordIndex = typedWords.length - 1;
     const currentSourceWord = sourceWords[currentSourceWordIndex];
     const currentTypedWord = typedWords[currentSourceWordIndex];

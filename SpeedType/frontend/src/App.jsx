@@ -5,7 +5,7 @@ import RaceTrack from './components/RaceTrack'
 import TypingArea from './components/TypingArea'
 
 // Connect to the backend server through ngrok
-const socket = io('https://f001-50-175-124-186.ngrok-free.app', {
+const socket = io('https://bf5d-50-175-124-186.ngrok-free.app', {
   secure: true,
   rejectUnauthorized: false // Only use this in development
 })

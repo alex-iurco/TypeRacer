@@ -45,14 +45,14 @@ function App() {
       console.log('Formatted quotes:', randomQuotes);
       setQuotes(randomQuotes);
     } catch (error) {
-      console.error('Error fetching quotes:', error);
-      // Set longer fallback quotes in case of error
+      console.log('Using fallback quotes due to API error');
+      // Set fallback quotes in case of error
       setQuotes([
-        '"The only way to do great work is to love what you do. If you haven\'t found it yet, keep looking. Don\'t settle. As with all matters of the heart, you\'ll know when you find it. And, like any great relationship, it just gets better and better as the years roll on." - Steve Jobs',
-        '"Success is not final, failure is not fatal: it is the courage to continue that counts. The journey of a thousand miles begins with one step. Every great achievement was once considered impossible." - Winston Churchill',
-        '"Believe you can and you\'re halfway there. The future belongs to those who believe in the beauty of their dreams. The only limit to our realization of tomorrow will be our doubts of today." - Theodore Roosevelt',
-        '"The future belongs to those who believe in the beauty of their dreams. Everything you can imagine is real. The only way to do great work is to love what you do." - Eleanor Roosevelt',
-        '"Everything you can imagine is real. The only way to do great work is to love what you do. Success is not final, failure is not fatal: it is the courage to continue that counts." - Pablo Picasso'
+        '"The only way to do great work is to love what you do." - Steve Jobs',
+        '"Success is not final, failure is not fatal: it is the courage to continue that counts." - Winston Churchill',
+        '"Believe you can and you\'re halfway there." - Theodore Roosevelt',
+        '"Everything you can imagine is real." - Pablo Picasso',
+        '"The future belongs to those who believe in the beauty of their dreams." - Eleanor Roosevelt'
       ]);
     } finally {
       setIsLoadingQuotes(false);

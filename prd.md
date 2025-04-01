@@ -146,6 +146,123 @@
 - Import/export user data
 - API for third-party integrations
 
+### 4.5 Deployment and Setup
+
+#### 4.5.1 Development Environment Requirements
+- Node.js v18.19.1 or higher
+- npm package manager
+- Git for version control
+- Modern web browser (Chrome, Firefox, Safari)
+
+#### 4.5.2 Method 1: Local Development (Frontend + Backend)
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/alex-iurco/TypeRacer.git
+   cd TypeRacer
+   ```
+2. Backend Setup:
+   ```bash
+   cd SpeedType/backend
+   npm install
+   node server.js  # Runs on port 3001
+   ```
+   You should see: "Server listening on *:3001"
+
+3. Frontend Setup (in a new terminal):
+   ```bash
+   cd SpeedType/frontend
+   npm install
+   npm run dev     # Runs on port 5173
+   ```
+
+4. Access the application:
+   - Open http://localhost:5173 in your browser
+   - Frontend will automatically connect to backend on port 3001
+   - Multiple browser windows can be used to simulate multiple players
+
+Troubleshooting:
+- If port 3001 is in use, kill the existing process:
+  ```bash
+  pkill -f "node server.js"
+  ```
+- If changes don't appear, clear browser cache or use incognito mode
+
+#### 4.5.3 Method 2: GitHub Pages + ngrok Deployment
+
+This method hosts the frontend on GitHub Pages and tunnels the backend through ngrok.
+
+1. Backend Setup:
+   ```bash
+   cd SpeedType/backend
+   npm install
+   ```
+
+2. Set up ngrok:
+   ```bash
+   # Install ngrok globally
+   npm install -g ngrok
+   
+   # Start backend server
+   node server.js
+   
+   # In a new terminal, create ngrok tunnel
+   ngrok http 3001
+   ```
+   - Copy the provided HTTPS URL (e.g., `https://xxxx-xx-xx-xxx-xx.ngrok-free.app`)
+
+3. Update Frontend Configuration:
+   ```bash
+   cd SpeedType/frontend
+   ```
+   - Edit `src/App.jsx`:
+   ```javascript
+   const socket = io('YOUR_NGROK_URL', {
+     secure: true,
+     rejectUnauthorized: false
+   })
+   ```
+
+4. Deploy to GitHub Pages:
+   ```bash
+   npm install    # If not done already
+   npm run deploy
+   ```
+   - Site will be available at `https://[username].github.io/TypeRacer/`
+   - Wait 5-10 minutes for GitHub Pages to update
+
+5. Maintaining the Deployment:
+   - Keep the backend server running
+   - Keep the ngrok tunnel active
+   - If ngrok URL changes (tunnel restart):
+     1. Update URL in `App.jsx`
+     2. Commit and push changes
+     3. Run `npm run deploy` again
+
+Troubleshooting:
+- If "Disconnected" appears:
+  - Verify backend server is running
+  - Check ngrok tunnel is active
+  - Ensure ngrok URL in `App.jsx` matches current tunnel
+- If connection errors occur:
+  - Clear browser cache
+  - Try incognito mode
+  - Check browser console for specific errors
+
+#### 4.5.4 Configuration Requirements
+- CORS settings in backend allow GitHub Pages domain
+- Secure WebSocket connections (WSS) through ngrok
+- Environment variables for API keys (if needed)
+- Error handling for external services (e.g., quotes API)
+- Regular ngrok tunnel URL updates in frontend code
+
+#### 4.5.5 Security Considerations
+- ngrok exposes your local server to the internet
+- Use for development/testing only
+- Consider proper cloud hosting for production use
+- Keep dependencies updated
+- Monitor server logs for unusual activity
+
 ## 5. User Journey
 
 ### 5.1 Onboarding

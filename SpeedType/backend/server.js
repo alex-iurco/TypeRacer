@@ -1,17 +1,21 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
-const cors = require('cors'); // Will likely need CORS
+const cors = require('cors');
 
 const app = express();
+app.use(cors());
 const server = http.createServer(app);
 
-// Allow requests from the frontend (adjust origin in production)
+// Allow requests from GitHub Pages and local development
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins for now (development)
-    methods: ["GET", "POST"]
-  }
+    origin: ["https://alex-iurco.github.io", "http://localhost:5173", "http://localhost:3000"],
+    methods: ["GET", "POST"],
+    credentials: true,
+    transports: ['websocket', 'polling']
+  },
+  allowEIO3: true
 });
 
 const PORT = process.env.PORT || 3001;

@@ -1,0 +1,97 @@
+.typing-area-container {
+  margin-top: 2rem;
+  border: 1px solid #555;
+  padding: 1.5rem;
+  border-radius: 8px;
+  background-color: #2a2a2a;
+}
+
+.text-display {
+  font-family: 'Consolas', 'Monaco', 'Courier New', Courier, monospace; /* Use common monospace fonts */
+  font-size: 1.3em; /* Slightly larger font */
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #333;
+  border-radius: 4px;
+  text-align: left;
+  min-height: 100px; /* Ensure space even when loading */
+  white-space: pre-wrap; /* Preserve whitespace and wrap lines */
+  letter-spacing: 0.05em; /* Add some spacing between letters */
+}
+
+/* Base style for all characters */
+.text-display span {
+  /* transition: color 0.1s ease, background-color 0.1s ease; */ /* Optional transition */
+  display: inline-block; /* Needed for background colors */
+}
+
+/* Untyped characters */
+.text-display span.char-pending {
+  color: #666; /* Dim color for untyped text */
+}
+
+/* Typed characters (base) */
+.text-display span.char-typed {
+  /* Common style for typed characters if needed */
+}
+
+/* Correctly typed characters */
+.text-display span.char-correct {
+  color: #a0d9a0; /* Light green for correct chars (like image) */
+  /* background-color: #2a3b2a; */ /* Optional subtle background */
+}
+
+/* Incorrectly typed characters */
+.text-display span.char-incorrect {
+  color: #d9a0a0; /* Light red for incorrect text */
+  background-color: #4d3030; /* Dark red background (like image highlight) */
+  border-radius: 2px;
+  text-decoration: underline; /* Underline incorrect characters */
+}
+
+/* Special handling for spaces to show background */
+.text-display span.char-space.char-incorrect {
+    padding: 0 0.1em; /* Add padding to make background visible */
+}
+
+.typing-input {
+  width: 100%;
+  padding: 0.8em 1em;
+  font-size: 1.1em;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background-color: #333; /* Dark theme input background */
+  color: #fff; /* Light text for dark theme */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  margin-top: 1rem;
+}
+
+.typing-input::placeholder {
+  color: #888; /* Lighter color for placeholder text */
+}
+
+.typing-input:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 5px #646cffaa;
+  background-color: #444; /* Slightly lighter when focused */
+}
+
+/* Style for input field when current word is incorrect */
+.typing-input.input-error {
+  background-color: #4d3030;
+  border-color: #d9a0a0;
+  color: #fff;
+}
+
+.typing-input.input-error:focus {
+  box-shadow: 0 0 5px #d9a0a0aa;
+}
+
+.typing-input:disabled {
+  background-color: #222;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #444;
+} 

@@ -1,0 +1,88 @@
+.race-track-container {
+  margin: 2rem 0;
+  border: 1px solid #555;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #1a1a1a;
+}
+
+.race-track {
+  position: relative;
+  height: auto;
+  min-height: 150px;
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.car-lane {
+  position: relative;
+  height: 50px;
+  display: flex;
+  align-items: center;
+}
+
+.lane-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  border-bottom: 2px dashed #444;
+}
+
+.car-container {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: left 0.1s linear;
+}
+
+.car-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.racer-name {
+  font-size: 0.8em;
+  color: #fff;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.finish-line-stats {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.wpm-display {
+  font-size: 0.9em;
+  color: #fff;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.place-display {
+  font-size: 0.8em;
+  color: #32cd32;
+  font-weight: bold;
+}
+
+/* Waiting message styling */
+.race-track p {
+  text-align: center;
+  color: #666;
+  margin: 2rem 0;
+} 

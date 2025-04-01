@@ -17,6 +17,30 @@ function App() {
   const [customText, setCustomText] = useState('') // State for the text area
   const [typedText, setTypedText] = useState('') // Add state for the input field content
   const [myWpm, setMyWpm] = useState(0) // Add state for WPM
+  const [quotes, setQuotes] = useState([])
+  const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
+
+  // Fetch motivational quotes
+  const fetchQuotes = async () => {
+    setIsLoadingQuotes(true);
+    try {
+      const response = await fetch('https://api.quotable.io/quotes/random?limit=5&tags=inspirational|motivation');
+      const data = await response.json();
+      const formattedQuotes = data.map(quote => 
+        `"${quote.content}" - ${quote.author}`
+      );
+      setQuotes(formattedQuotes);
+    } catch (error) {
+      console.error('Error fetching quotes:', error);
+    } finally {
+      setIsLoadingQuotes(false);
+    }
+  };
+
+  // Fetch quotes when component mounts
+  useEffect(() => {
+    fetchQuotes();
+  }, []);
 
   useEffect(() => {
     function onConnect() {
@@ -99,6 +123,10 @@ function App() {
     }
   }
 
+  const handleQuoteSelect = (quote) => {
+    setCustomText(quote);
+  };
+
   return (
     <div className="App">
       <h1>SpeedType</h1>
@@ -107,6 +135,31 @@ function App() {
       {isConnected && raceState === 'waiting' && (
         <div className="config-area">
           <h2>Enter Race Text</h2>
+          <div className="quotes-section">
+            <h3>Suggested Motivational Quotes:</h3>
+            {isLoadingQuotes ? (
+              <p>Loading quotes...</p>
+            ) : (
+              <div className="quotes-list">
+                {quotes.map((quote, index) => (
+                  <button
+                    key={index}
+                    className="quote-button"
+                    onClick={() => handleQuoteSelect(quote)}
+                  >
+                    {quote}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button 
+              className="refresh-quotes"
+              onClick={fetchQuotes}
+              disabled={isLoadingQuotes}
+            >
+              Refresh Quotes
+            </button>
+          </div>
           <textarea
             rows="6"
             placeholder="Paste or type the text for the race here..."

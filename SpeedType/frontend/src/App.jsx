@@ -24,14 +24,34 @@ function App() {
   const fetchQuotes = async () => {
     setIsLoadingQuotes(true);
     try {
+      console.log('Fetching quotes...');
+      // First try to get longer quotes from Quotable API
       const response = await fetch('https://api.quotable.io/quotes/random?limit=5&tags=inspirational|motivation');
+      console.log('Response received:', response);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
-      const formattedQuotes = data.map(quote => 
-        `"${quote.content}" - ${quote.author}`
-      );
-      setQuotes(formattedQuotes);
+      console.log('Quotes data:', data);
+      
+      // Get 5 random quotes from the data
+      const randomQuotes = data
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 5)
+        .map(quote => `"${quote.content}" - ${quote.author || 'Unknown'}`);
+      
+      console.log('Formatted quotes:', randomQuotes);
+      setQuotes(randomQuotes);
     } catch (error) {
       console.error('Error fetching quotes:', error);
+      // Set longer fallback quotes in case of error
+      setQuotes([
+        '"The only way to do great work is to love what you do. If you haven\'t found it yet, keep looking. Don\'t settle. As with all matters of the heart, you\'ll know when you find it. And, like any great relationship, it just gets better and better as the years roll on." - Steve Jobs',
+        '"Success is not final, failure is not fatal: it is the courage to continue that counts. The journey of a thousand miles begins with one step. Every great achievement was once considered impossible." - Winston Churchill',
+        '"Believe you can and you\'re halfway there. The future belongs to those who believe in the beauty of their dreams. The only limit to our realization of tomorrow will be our doubts of today." - Theodore Roosevelt',
+        '"The future belongs to those who believe in the beauty of their dreams. Everything you can imagine is real. The only way to do great work is to love what you do." - Eleanor Roosevelt',
+        '"Everything you can imagine is real. The only way to do great work is to love what you do. Success is not final, failure is not fatal: it is the courage to continue that counts." - Pablo Picasso'
+      ]);
     } finally {
       setIsLoadingQuotes(false);
     }

@@ -41,6 +41,12 @@
 - Skill-based matchmaking for competitive races
 - Private race rooms with invitations
 - Tournament scheduling and participation
+- Pre-loaded motivational passages for quick race starts:
+  - Random selection of 5 longer passages (3-5 sentences each)
+  - Option to refresh passages for new selections
+  - Fallback passages available if API is unavailable
+  - One-click passage selection for race text
+  - Passages sourced from Quotable API with curated fallback options
 
 ### 3.3 Racing Experience
 

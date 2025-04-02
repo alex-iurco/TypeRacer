@@ -4,13 +4,16 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ["https://alex-iurco.github.io", "https://speedtype.robocat.ai", "http://localhost:5173", "http://localhost:3000"],
+  credentials: true
+}));
 const server = http.createServer(app);
 
-// Allow requests from GitHub Pages and local development
+// Allow requests from GitHub Pages, custom domain, and local development
 const io = new Server(server, {
   cors: {
-    origin: ["https://alex-iurco.github.io", "http://localhost:5173", "http://localhost:3000"],
+    origin: ["https://alex-iurco.github.io", "https://speedtype.robocat.ai", "https://4bb4-50-175-124-186.ngrok-free.app", "http://localhost:5173", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
     transports: ['websocket', 'polling']

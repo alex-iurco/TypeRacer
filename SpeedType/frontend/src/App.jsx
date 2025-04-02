@@ -4,8 +4,8 @@ import './App.css'
 import RaceTrack from './components/RaceTrack'
 import TypingArea from './components/TypingArea'
 
-// Connect to the backend server through ngrok
-const socket = io('https://4bb4-50-175-124-186.ngrok-free.app', {
+// Connect to the backend server on Railway
+const socket = io('https://speedtype-backend-production.up.railway.app', {
   secure: true,
   rejectUnauthorized: false, // Only use this in development
   transports: ['websocket', 'polling'],

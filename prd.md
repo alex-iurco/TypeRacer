@@ -41,12 +41,15 @@
 - Skill-based matchmaking for competitive races
 - Private race rooms with invitations
 - Tournament scheduling and participation
-- Pre-loaded motivational passages for quick race starts:
-  - Random selection of 5 longer passages (3-5 sentences each)
-  - Option to refresh passages for new selections
-  - Fallback passages available if API is unavailable
+- Built-in motivational passages for quick race starts:
+  - Curated collection of 15 longer passages (2-4 sentences each)
+  - Random selection of 5 passages displayed at a time
+  - One-click refresh for new passage selection
   - One-click passage selection for race text
-  - Passages sourced from Quotable API with curated fallback options
+  - High-quality quotes from notable historical figures and thought leaders
+  - Optimized for typing practice with varied sentence structures
+  - Local quote management for reliable performance
+  - Fisher-Yates shuffle algorithm for true randomization
 
 ### 3.3 Racing Experience
 

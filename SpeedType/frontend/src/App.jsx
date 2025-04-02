@@ -16,6 +16,35 @@ const socket = io('https://speedtype-backend-production.up.railway.app', {
   reconnectionDelay: 1000
 })
 
+// Fisher-Yates shuffle algorithm
+const shuffle = (array) => {
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex > 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+  return array;
+};
+
+const fallbackQuotes = [
+  '"Success is not final, failure is not fatal: it is the courage to continue that counts. Every day may not be good, but there is something good in every day. Keep your face always toward the sunshine, and shadows will fall behind you." - Winston Churchill',
+  '"The future depends on what you do today. Yesterday is history, tomorrow is a mystery, but today is a gift. That is why it is called the present. Make the most of yourself, for that is all there is of you." - Mahatma Gandhi',
+  '"Life is like riding a bicycle. To keep your balance, you must keep moving. Just as energy is the basis of life itself, and ideas the source of innovation, so is innovation the vital spark of all human change, improvement, and progress." - Albert Einstein',
+  '"The only limit to our realization of tomorrow will be our doubts of today. Let us move forward with strong and active faith. Courage is not having the strength to go on; it is going on when you do not have the strength." - Franklin D. Roosevelt',
+  '"It does not matter how slowly you go as long as you do not stop. Our greatest glory is not in never falling, but in rising every time we fall. Life is not about waiting for the storm to pass but learning to dance in the rain." - Confucius',
+  '"Twenty years from now you will be more disappointed by the things that you did not do than by the ones you did do. So throw off the bowlines. Sail away from the safe harbor. Catch the trade winds in your sails. Explore. Dream. Discover." - Mark Twain',
+  '"The best way to predict the future is to create it. Success is not the key to happiness. Happiness is the key to success. If you love what you are doing, you will be successful. The journey of a thousand miles begins with one step." - Peter Drucker',
+  '"What lies behind us and what lies before us are tiny matters compared to what lies within us. The only person you are destined to become is the person you decide to be. Be yourself; everyone else is already taken." - Ralph Waldo Emerson',
+  '"Do not watch the clock; do what it does. Keep going. The difference between ordinary and extraordinary is that little extra. The harder you work for something, the greater you will feel when you achieve it." - Sam Levenson',
+  '"Your time is limited, do not waste it living someone else\'s life. Do not be trapped by dogma, which is living with the results of other people\'s thinking. Do not let the noise of other\'s opinions drown out your own inner voice." - Steve Jobs',
+  '"The only impossible journey is the one you never begin. Life is not measured by the number of breaths we take, but by the moments that take our breath away. The purpose of our lives is to be happy and to make others happy." - Anthony Robbins',
+  '"Success usually comes to those who are too busy to be looking for it. The future belongs to those who believe in the beauty of their dreams. Hard work beats talent when talent does not work hard." - Henry David Thoreau',
+  '"The greatest glory in living lies not in never falling, but in rising every time we fall. Education is not preparation for life; education is life itself. The beautiful thing about learning is that no one can take it away from you." - Nelson Mandela',
+  '"Everything you have ever wanted is on the other side of fear. Success is walking from failure to failure with no loss of enthusiasm. The only way to do great work is to love what you do." - George Addair',
+  '"You are never too old to set another goal or to dream a new dream. The future depends on what you do today. Do not let yesterday take up too much of today. Life is what happens while you are busy making other plans." - C.S. Lewis'
+];
+
 function App() {
   const [isConnected, setIsConnected] = useState(socket.connected)
   const [raceState, setRaceState] = useState('waiting') // 'waiting', 'racing', 'finished'
@@ -29,40 +58,13 @@ function App() {
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
 
   // Fetch motivational quotes
-  const fetchQuotes = async () => {
+  const fetchQuotes = () => {
     setIsLoadingQuotes(true);
-    try {
-      console.log('Fetching quotes...');
-      // First try to get longer quotes from Quotable API
-      const response = await fetch('https://api.quotable.io/quotes/random?limit=5&tags=inspirational|motivation');
-      console.log('Response received:', response);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Quotes data:', data);
-      
-      // Get 5 random quotes from the data
-      const randomQuotes = data
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 5)
-        .map(quote => `"${quote.content}" - ${quote.author || 'Unknown'}`);
-      
-      console.log('Formatted quotes:', randomQuotes);
-      setQuotes(randomQuotes);
-    } catch (error) {
-      console.log('Using fallback quotes due to API error');
-      // Set fallback quotes in case of error
-      setQuotes([
-        '"The only way to do great work is to love what you do." - Steve Jobs',
-        '"Success is not final, failure is not fatal: it is the courage to continue that counts." - Winston Churchill',
-        '"Believe you can and you\'re halfway there." - Theodore Roosevelt',
-        '"Everything you can imagine is real." - Pablo Picasso',
-        '"The future belongs to those who believe in the beauty of their dreams." - Eleanor Roosevelt'
-      ]);
-    } finally {
-      setIsLoadingQuotes(false);
-    }
+    // Get 5 random quotes using Fisher-Yates shuffle
+    const shuffledQuotes = shuffle([...fallbackQuotes]).slice(0, 5);
+    console.log('Selected quotes:', shuffledQuotes);
+    setQuotes(shuffledQuotes);
+    setIsLoadingQuotes(false);
   };
 
   // Fetch quotes when component mounts

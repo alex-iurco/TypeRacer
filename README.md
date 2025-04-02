@@ -19,6 +19,12 @@ Current Version: v1.0.1
 - Word-level error detection and visual feedback
 - WPM (Words Per Minute) display at finish line
 - Place rankings (1st, 2nd, 3rd) upon race completion
+- Built-in collection of curated motivational quotes:
+  - 15 longer passages (2-4 sentences each)
+  - Random selection of 5 quotes displayed at a time
+  - One-click refresh for new quote selection
+  - One-click quote selection for race text
+  - Quotes from notable figures like Einstein, Churchill, Gandhi, etc.
 - Custom text input support
 - Dark theme optimized for readability
 - Version display for tracking updates

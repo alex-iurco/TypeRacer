@@ -17,11 +17,18 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Debug Directory
+        run: |
+          pwd
+          ls -la
+          
       - name: Install Railway CLI
         run: npm install -g @railway/cli
 
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        working-directory: ./SpeedType/backend
-        run: railway up --service speedtype-backend 
+        run: |
+          cd SpeedType/backend
+          ls -la
+          railway up --service speedtype-backend 

@@ -158,8 +158,8 @@
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/alex-iurco/TypeRacer.git
-   cd TypeRacer
+   git clone https://github.com/alex-iurco/SpeedType.git
+   cd SpeedType
    ```
 2. Backend Setup:
    ```bash
@@ -228,7 +228,7 @@ This method hosts the frontend on GitHub Pages and tunnels the backend through n
    npm install    # If not done already
    npm run deploy
    ```
-   - Site will be available at `https://[username].github.io/TypeRacer/`
+   - Site will be available at `https://[username].github.io/SpeedType/`
    - Wait 5-10 minutes for GitHub Pages to update
 
 5. Maintaining the Deployment:
@@ -367,7 +367,7 @@ Troubleshooting:
 - Customization interfaces
 
 ### 10.2 Competitive Analysis
-- Feature comparison with TypeRacer, 10FastFingers, and other competitors
+- Feature comparison with similar typing games and other competitors
 - Market positioning strategy
 - Unique value propositions
 

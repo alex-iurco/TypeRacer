@@ -1,4 +1,4 @@
-# TypeRacer - Real-time Multiplayer Typing Race Game
+# SpeedType - Real-time Multiplayer Typing Race Game
 
 A competitive typing application where users race against each other by typing provided text as quickly and accurately as possible. Progress is visually represented by cars moving across the screen, with real-time performance metrics.
 
@@ -45,8 +45,8 @@ A competitive typing application where users race against each other by typing p
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/alex-iurco/TypeRacer.git
-cd TypeRacer
+git clone https://github.com/alex-iurco/SpeedType.git
+cd SpeedType
 ```
 
 2. Install backend dependencies:
@@ -142,6 +142,6 @@ SpeedType/
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
-- Inspired by the original TypeRacer game
+- Inspired by the original SpeedType game
 - Built with modern web technologies
 - Focused on user experience and real-time feedback 

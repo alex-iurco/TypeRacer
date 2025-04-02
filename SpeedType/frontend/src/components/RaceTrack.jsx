@@ -27,7 +27,8 @@ function RaceTrack({ racers }) {
               <div
                 className="car-container"
                 style={{
-                  left: `${Math.min(95, racer.progress)}%`,
+                  left: `${Math.min(90, racer.progress)}%`,
+                  transition: 'left 0.2s ease-out'
                 }}
               >
                 <CarIcon color={getRacerColor(index)} />

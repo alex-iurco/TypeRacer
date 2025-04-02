@@ -190,53 +190,66 @@ Troubleshooting:
 
 #### 4.5.3 Method 2: Production Deployment (GitHub Pages + Railway)
 
-This method hosts the frontend on GitHub Pages and the backend on Railway.
+Current Version: v1.0.1
+
+This method hosts the frontend on GitHub Pages and the backend on Railway, providing a robust production environment.
 
 1. Backend Deployment to Railway:
-   ```bash
-   # Install Railway CLI
-   npm install -g @railway/cli
-   
-   # Login to Railway
-   railway login --browserless
-   
-   # Initialize and deploy
-   cd SpeedType/backend
-   railway init  # Select your project name
-   railway up    # Deploy to Railway
-   ```
-   - Railway will provide a domain like: `https://your-app-name.railway.app`
-   - The backend will be automatically deployed on push to main branch
+   - The backend is automatically deployed to Railway on push to main branch
+   - Configuration is managed through `railway.toml`:
+     ```toml
+     [build]
+     builder = "NIXPACKS"
+     buildCommand = "npm install"
+
+     [deploy]
+     startCommand = "node server.js"
+     healthcheckPath = "/"
+     healthcheckTimeout = 100
+     restartPolicyType = "ON_FAILURE"
+     restartPolicyMaxRetries = 3
+
+     [service]
+     name = "speedtype-backend"
+     port = 3001
+     ```
+   - GitHub Actions workflow handles automatic deployments
+   - Environment variables are managed in Railway dashboard
 
 2. Frontend Deployment to GitHub Pages:
    ```bash
    cd SpeedType/frontend
-   # Update the socket connection URL in src/App.jsx
+   # Frontend is configured to use Railway backend URL
    npm run deploy
    ```
+   - Deployment is configured in `package.json` using gh-pages
+   - Custom domain setup in `public/CNAME`
+   - Base URL configured in `vite.config.js`
 
-3. Custom Domain Setup (Optional):
-   - Configure DNS settings for your domain
-   - Add CNAME record pointing to GitHub Pages
-   - Update CORS settings in backend for your domain
-   - Configure custom domain in GitHub repository settings
+3. Production URLs:
+   - Frontend: https://speedtype.robocat.ai
+   - Backend: https://speedtype-backend-production.up.railway.app
 
-4. Access the application:
-   - Production: https://speedtype.robocat.ai
-   - The frontend will automatically connect to the Railway backend
-   - All features are available in production environment
+4. Security and Configuration:
+   - CORS settings configured for production domains
+   - Secure WebSocket connections (WSS) enabled
+   - Environment variables used for sensitive configurations
+   - Regular security updates and monitoring
+   - Custom domain with SSL/HTTPS support
 
-Configuration Requirements:
-- Railway account with available credits
-- GitHub repository with GitHub Pages enabled
-- Custom domain (optional) with proper DNS configuration
-- Environment variables set in Railway dashboard
+5. Monitoring and Maintenance:
+   - Railway provides built-in monitoring and logs
+   - GitHub Actions shows deployment status
+   - Version number displayed in UI for tracking updates
+   - Automatic restarts on failure configured in Railway
 
-Security Considerations:
-- CORS settings properly configured for production domains
-- Secure WebSocket connections (WSS) enabled
-- Environment variables used for sensitive configurations
-- Regular security updates and monitoring
+6. Rollback Procedure:
+   - Railway supports instant rollbacks to previous deployments
+   - Frontend can be rolled back using git:
+     ```bash
+     git checkout <previous_commit>
+     npm run deploy
+     ```
 
 ## 5. User Journey
 

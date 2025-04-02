@@ -2,6 +2,12 @@
 
 A competitive typing application where users race against each other by typing provided text as quickly and accurately as possible. Progress is visually represented by cars moving across the screen, with real-time performance metrics.
 
+Current Version: v1.0.1
+
+## Live Demo
+- Frontend: https://speedtype.robocat.ai
+- Backend: https://speedtype-backend-production.up.railway.app
+
 ## Features
 
 ### Core Racing Experience
@@ -15,6 +21,7 @@ A competitive typing application where users race against each other by typing p
 - Place rankings (1st, 2nd, 3rd) upon race completion
 - Custom text input support
 - Dark theme optimized for readability
+- Version display for tracking updates
 
 ### Race Track Visualization
 - SVG car icons with unique colors per racer
@@ -29,16 +36,18 @@ A competitive typing application where users race against each other by typing p
 - React with Vite
 - Socket.IO client for real-time communication
 - CSS3 for styling and animations
+- GitHub Pages for hosting
 
 ### Backend
 - Node.js
 - Express
 - Socket.IO for real-time race updates
+- Railway for hosting
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js (v14 or higher)
+- Node.js (v18.19.1 or higher)
 - npm (v6 or higher)
 
 ### Installation
@@ -61,9 +70,9 @@ cd ../frontend
 npm install
 ```
 
-### Running the Application
+### Development Setup
 
-1. Start the backend server:
+1. Start the backend server locally (optional, as production uses Railway):
 ```bash
 cd SpeedType/backend
 node server.js
@@ -77,12 +86,20 @@ npm run dev
 ```
 The frontend will be available at http://localhost:5173
 
-### Network Access
-To allow other users on your network to join:
+### Production Deployment
 
-1. The backend server listens on all network interfaces (0.0.0.0)
-2. Frontend users can connect using your machine's IP address
-3. For external access, configure port forwarding on your router
+The application is deployed using:
+- Frontend: GitHub Pages with custom domain (speedtype.robocat.ai)
+- Backend: Railway with automatic deployments
+- Custom domain configuration with proper SSL/HTTPS support
+
+For detailed deployment instructions, see the [Product Requirements Document](prd.md).
+
+### Network Access
+For local development, the backend server listens on all network interfaces (0.0.0.0).
+In production, the application uses:
+- Frontend: https://speedtype.robocat.ai
+- Backend: https://speedtype-backend-production.up.railway.app
 
 ## Development
 
@@ -91,6 +108,7 @@ To allow other users on your network to join:
 SpeedType/
 ├── backend/
 │   ├── server.js
+│   ├── railway.toml
 │   └── package.json
 └── frontend/
     ├── src/
@@ -102,6 +120,8 @@ SpeedType/
     │   │   └── CarIcon.jsx
     │   ├── App.jsx
     │   └── main.jsx
+    ├── public/
+    │   └── CNAME
     └── package.json
 ```
 

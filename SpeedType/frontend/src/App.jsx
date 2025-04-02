@@ -157,8 +157,10 @@ function App() {
 
   return (
     <div className="App">
-      <h1>SpeedType</h1>
-      <p>Status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+      <div className="app-header">
+        <h1>SpeedType <span className="version">v1.0.1</span></h1>
+        <p>Status: {isConnected ? 'Connected' : 'Disconnected'}</p>
+      </div>
 
       {isConnected && raceState === 'waiting' && (
         <div className="config-area">

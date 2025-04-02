@@ -188,80 +188,55 @@ Troubleshooting:
   ```
 - If changes don't appear, clear browser cache or use incognito mode
 
-#### 4.5.3 Method 2: GitHub Pages + ngrok Deployment
+#### 4.5.3 Method 2: Production Deployment (GitHub Pages + Railway)
 
-This method hosts the frontend on GitHub Pages and tunnels the backend through ngrok.
+This method hosts the frontend on GitHub Pages and the backend on Railway.
 
-1. Backend Setup:
+1. Backend Deployment to Railway:
    ```bash
+   # Install Railway CLI
+   npm install -g @railway/cli
+   
+   # Login to Railway
+   railway login --browserless
+   
+   # Initialize and deploy
    cd SpeedType/backend
-   npm install
+   railway init  # Select your project name
+   railway up    # Deploy to Railway
    ```
+   - Railway will provide a domain like: `https://your-app-name.railway.app`
+   - The backend will be automatically deployed on push to main branch
 
-2. Set up ngrok:
-   ```bash
-   # Install ngrok globally
-   npm install -g ngrok
-   
-   # Start backend server
-   node server.js
-   
-   # In a new terminal, create ngrok tunnel
-   ngrok http 3001
-   ```
-   - Copy the provided HTTPS URL (e.g., `https://xxxx-xx-xx-xxx-xx.ngrok-free.app`)
-
-3. Update Frontend Configuration:
+2. Frontend Deployment to GitHub Pages:
    ```bash
    cd SpeedType/frontend
-   ```
-   - Edit `src/App.jsx`:
-   ```javascript
-   const socket = io('YOUR_NGROK_URL', {
-     secure: true,
-     rejectUnauthorized: false
-   })
-   ```
-
-4. Deploy to GitHub Pages:
-   ```bash
-   npm install    # If not done already
+   # Update the socket connection URL in src/App.jsx
    npm run deploy
    ```
-   - Site will be available at `https://[username].github.io/SpeedType/`
-   - Wait 5-10 minutes for GitHub Pages to update
 
-5. Maintaining the Deployment:
-   - Keep the backend server running
-   - Keep the ngrok tunnel active
-   - If ngrok URL changes (tunnel restart):
-     1. Update URL in `App.jsx`
-     2. Commit and push changes
-     3. Run `npm run deploy` again
+3. Custom Domain Setup (Optional):
+   - Configure DNS settings for your domain
+   - Add CNAME record pointing to GitHub Pages
+   - Update CORS settings in backend for your domain
+   - Configure custom domain in GitHub repository settings
 
-Troubleshooting:
-- If "Disconnected" appears:
-  - Verify backend server is running
-  - Check ngrok tunnel is active
-  - Ensure ngrok URL in `App.jsx` matches current tunnel
-- If connection errors occur:
-  - Clear browser cache
-  - Try incognito mode
-  - Check browser console for specific errors
+4. Access the application:
+   - Production: https://speedtype.robocat.ai
+   - The frontend will automatically connect to the Railway backend
+   - All features are available in production environment
 
-#### 4.5.4 Configuration Requirements
-- CORS settings in backend allow GitHub Pages domain
-- Secure WebSocket connections (WSS) through ngrok
-- Environment variables for API keys (if needed)
-- Error handling for external services (e.g., quotes API)
-- Regular ngrok tunnel URL updates in frontend code
+Configuration Requirements:
+- Railway account with available credits
+- GitHub repository with GitHub Pages enabled
+- Custom domain (optional) with proper DNS configuration
+- Environment variables set in Railway dashboard
 
-#### 4.5.5 Security Considerations
-- ngrok exposes your local server to the internet
-- Use for development/testing only
-- Consider proper cloud hosting for production use
-- Keep dependencies updated
-- Monitor server logs for unusual activity
+Security Considerations:
+- CORS settings properly configured for production domains
+- Secure WebSocket connections (WSS) enabled
+- Environment variables used for sensitive configurations
+- Regular security updates and monitoring
 
 ## 5. User Journey
 

@@ -13,7 +13,7 @@ const server = http.createServer(app);
 // Allow requests from GitHub Pages, custom domain, and local development
 const io = new Server(server, {
   cors: {
-    origin: ["https://alex-iurco.github.io", "https://speedtype.robocat.ai", "https://4bb4-50-175-124-186.ngrok-free.app", "http://localhost:5173", "http://localhost:3000"],
+    origin: ["https://alex-iurco.github.io", "https://speedtype.robocat.ai", "http://localhost:5173", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
     transports: ['websocket', 'polling']
@@ -29,9 +29,9 @@ const PORT = process.env.PORT || 3001;
 let currentRaceText = null; // Store the active race text
 let racers = {}; // Store racer data { socketId: { id, name, progress } }
 
-// Basic route
+// Basic route for health check
 app.get('/', (req, res) => {
-  res.send('SpeedType Backend is running!');
+  res.json({ status: 'healthy', message: 'SpeedType Backend is running!' });
 });
 
 // Socket.IO connection handling
@@ -103,6 +103,16 @@ io.on('connection', (socket) => {
   // More event handlers can be added later
 });
 
+// Error handling
+server.on('error', (error) => {
+  console.error('Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+    process.exit(1);
+  }
+});
+
+// Start server
 server.listen(PORT, () => {
   console.log(`Server listening on *:${PORT}`);
 }); 

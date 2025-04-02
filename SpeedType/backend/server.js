@@ -115,4 +115,6 @@ server.on('error', (error) => {
 // Start server
 server.listen(PORT, () => {
   console.log(`Server listening on *:${PORT}`);
-}); 
+});
+
+// Deployment test - Railway GitHub Actions 

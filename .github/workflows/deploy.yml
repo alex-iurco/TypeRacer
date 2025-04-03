@@ -26,14 +26,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: SpeedType/frontend/package-lock.json
 
       - name: Install Dependencies
         working-directory: SpeedType/frontend
-        run: npm install
+        run: |
+          echo "Using clean install with no optional dependencies..."
+          npm ci --no-optional --prefer-offline
+        env:
+          CI: true
 
       - name: Build
         working-directory: SpeedType/frontend
         run: npm run build
+        env:
+          CI: true
 
       - name: Configure Custom Domain
         working-directory: SpeedType/frontend/dist

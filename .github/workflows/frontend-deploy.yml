@@ -13,9 +13,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./SpeedType/frontend
 
     steps:
       - name: Checkout
@@ -26,18 +23,21 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: 'SpeedType/frontend/package-lock.json'
 
       - name: Install Dependencies
+        working-directory: SpeedType/frontend
         run: npm ci
 
       - name: Build
+        working-directory: SpeedType/frontend
         run: npm run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
+          publish_dir: ./SpeedType/frontend/dist
           cname: speedtype.robocat.ai
           commit_message: ${{ github.event.head_commit.message }}
 

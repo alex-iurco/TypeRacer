@@ -1,0 +1,41 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SpeedType/frontend/**'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        working-directory: SpeedType/frontend
+        run: npm install
+
+      - name: Build
+        working-directory: SpeedType/frontend
+        run: npm run build
+
+      - name: Configure Custom Domain
+        working-directory: SpeedType/frontend/dist
+        run: echo "speedtype.robocat.ai" > CNAME
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: SpeedType/frontend/dist
+          cname: speedtype.robocat.ai
+          force_orphan: true 

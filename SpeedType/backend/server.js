@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
 
+// Updated server configuration with improved error handling
 const app = express();
 app.use(cors({
   origin: ["https://alex-iurco.github.io", "https://speedtype.robocat.ai", "http://localhost:5173", "http://localhost:3000"],

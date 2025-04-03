@@ -41,11 +41,13 @@ jobs:
           echo "Installing Railway CLI..."
           npm install -g @railway/cli
           
-          echo "Verifying Railway CLI installation..."
-          railway version
+          echo "Authenticating with Railway..."
+          railway login || exit 1
           
           echo "Starting Railway deployment..."
-          railway up --service speedtype-backend || exit 1
+          railway init || exit 1
+          railway link speedtype-backend || exit 1
+          railway up || exit 1
           
           echo "Deployment initiated, waiting for service to be ready..."
           sleep 30

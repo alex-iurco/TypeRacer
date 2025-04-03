@@ -1,0 +1,102 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install Frontend Dependencies
+      working-directory: SpeedType/frontend
+      run: npm ci
+
+    - name: Frontend Type Check
+      working-directory: SpeedType/frontend
+      run: npm run build
+
+    - name: Frontend Unit Tests
+      working-directory: SpeedType/frontend
+      run: npm test -- --run
+
+    - name: Install Playwright Browsers
+      working-directory: SpeedType/frontend
+      run: npx playwright install --with-deps
+
+    - name: Frontend E2E Tests
+      working-directory: SpeedType/frontend
+      run: npm run test:e2e
+
+    - name: Frontend Integration Tests
+      working-directory: SpeedType/frontend
+      run: npm run test:integration
+
+    - name: Install Backend Dependencies
+      working-directory: SpeedType/backend
+      run: npm ci
+
+    - name: Backend Tests
+      working-directory: SpeedType/backend
+      run: |
+        npm test
+        npm run test:integration
+        npm run test:socket
+
+    - name: Upload Test Coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage
+        path: |
+          SpeedType/frontend/coverage
+          SpeedType/backend/coverage
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18.x'
+        cache: 'npm'
+
+    - name: Build Frontend
+      working-directory: SpeedType/frontend
+      run: |
+        npm ci
+        npm run build
+
+    - name: Deploy Frontend to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: SpeedType/frontend/dist
+
+    - name: Deploy Backend to Railway
+      working-directory: SpeedType/backend
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      run: |
+        npm ci
+        npm i -g @railway/cli
+        railway up --service speedtype-backend 

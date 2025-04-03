@@ -3,6 +3,9 @@ name: Deploy to Railway
 on:
   push:
     branches: [main]
+    paths:
+      - 'SpeedType/backend/**'
+      - '.github/workflows/railway-deploy.yml'
 
 jobs:
   deploy:
@@ -12,23 +15,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
-      - name: Debug Directory
+      - name: Verify Backend Files
         run: |
-          pwd
-          ls -la
-          
+          echo "Checking backend directory structure:"
+          ls -la SpeedType/backend
+          echo "\nChecking package.json:"
+          cat SpeedType/backend/package.json
+          echo "\nChecking railway.toml:"
+          cat SpeedType/backend/railway.toml
+
+      - name: Install Dependencies
+        working-directory: SpeedType/backend
+        run: npm install
+
       - name: Install Railway CLI
-        run: npm install -g @railway/cli
+        run: |
+          echo "Installing Railway CLI..."
+          npm install -g @railway/cli
+          railway version
 
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        working-directory: SpeedType/backend
         run: |
-          cd SpeedType/backend
-          ls -la
-          railway up --service speedtype-backend 
+          echo "Starting Railway deployment..."
+          railway link --environment production
+          railway up --service speedtype-backend --detach
+          echo "Deployment initiated, waiting for service to be ready..."
+          sleep 30
+          
+      - name: Verify Deployment
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Verifying deployment..."
+          curl -I https://speedtype-backend-production.up.railway.app/
+          railway status 

@@ -42,8 +42,8 @@ jobs:
           npm install -g @railway/cli
           
           echo "Starting Railway deployment..."
-          # Skip interactive login and use token directly
-          railway up || exit 1
+          # Specify the service name explicitly
+          railway up --service speedtype-backend || exit 1
           
           echo "Deployment initiated, waiting for service to be ready..."
           sleep 30

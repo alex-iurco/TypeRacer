@@ -40,7 +40,7 @@ jobs:
           echo "Installing Railway CLI..."
           npm install -g @railway/cli
           echo "Configuring Railway..."
-          echo "$RAILWAY_TOKEN" | railway login
+          export RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }}
           railway whoami || exit 1
 
       - name: Deploy to Railway
@@ -49,6 +49,7 @@ jobs:
         working-directory: SpeedType/backend
         run: |
           echo "Starting Railway deployment..."
+          export RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }}
           railway link --environment production --project speedtype-backend || exit 1
           railway up --detach || exit 1
           echo "Deployment initiated, waiting for service to be ready..."

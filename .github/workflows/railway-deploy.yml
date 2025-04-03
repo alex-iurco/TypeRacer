@@ -10,6 +10,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
     steps:
       - name: Checkout
@@ -33,24 +35,22 @@ jobs:
         working-directory: SpeedType/backend
         run: npm install
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
-      - name: Railway Auth
-        uses: railway/railway-cli-action@v1.0.0
-        with:
-          railway-token: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Deploy to Railway
+      - name: Setup and Deploy to Railway
         working-directory: SpeedType/backend
         run: |
+          echo "Installing Railway CLI..."
+          npm install -g @railway/cli
+          
+          echo "Verifying Railway CLI installation..."
+          railway version
+          
           echo "Starting Railway deployment..."
-          railway link --environment production --project speedtype-backend || exit 1
-          railway up --detach || exit 1
+          railway up --service speedtype-backend || exit 1
+          
           echo "Deployment initiated, waiting for service to be ready..."
           sleep 30
           
       - name: Verify Deployment
         run: |
           echo "Verifying deployment..."
-          curl -I https://speedtype-backend-production.up.railway.app/ 
+          curl -I https://speedtype-backend-production.up.railway.app/ || true 

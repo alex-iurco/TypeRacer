@@ -10,8 +10,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
     steps:
       - name: Checkout
@@ -37,16 +35,14 @@ jobs:
 
       - name: Setup and Deploy to Railway
         working-directory: SpeedType/backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Installing Railway CLI..."
           npm install -g @railway/cli
           
-          echo "Authenticating with Railway..."
-          railway login || exit 1
-          
           echo "Starting Railway deployment..."
-          railway init || exit 1
-          railway link speedtype-backend || exit 1
+          # Skip interactive login and use token directly
           railway up || exit 1
           
           echo "Deployment initiated, waiting for service to be ready..."

@@ -10,6 +10,10 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -42,9 +46,14 @@ jobs:
           publish_dir: SpeedType/frontend/dist
           cname: speedtype.robocat.ai
           force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Verify DNS Configuration
+      - name: Verify Deployment
         run: |
-          echo "Verifying DNS configuration..."
+          echo "Verifying deployment..."
+          echo "Checking CNAME file..."
+          curl -s https://raw.githubusercontent.com/${{ github.repository }}/gh-pages/CNAME || echo "CNAME not accessible"
+          echo "Checking DNS configuration..."
           dig speedtype.robocat.ai +noall +answer || true
           echo "Note: DNS propagation may take up to 24 hours to complete" 

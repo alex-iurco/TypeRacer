@@ -30,7 +30,10 @@ jobs:
 
       - name: Configure Custom Domain
         working-directory: SpeedType/frontend/dist
-        run: echo "speedtype.robocat.ai" > CNAME
+        run: |
+          echo "speedtype.robocat.ai" > CNAME
+          echo "Created CNAME file with content:"
+          cat CNAME
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -38,4 +41,10 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: SpeedType/frontend/dist
           cname: speedtype.robocat.ai
-          force_orphan: true 
+          force_orphan: true
+
+      - name: Verify DNS Configuration
+        run: |
+          echo "Verifying DNS configuration..."
+          dig speedtype.robocat.ai +noall +answer || true
+          echo "Note: DNS propagation may take up to 24 hours to complete" 

@@ -26,14 +26,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: SpeedType/frontend/package-lock.json
+
+      - name: Debug Environment
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "\nDirectory contents:"
+          ls -la
+          echo "\nFrontend directory contents:"
+          ls -la SpeedType/frontend || echo "Frontend directory not found"
 
       - name: Install Dependencies
         working-directory: SpeedType/frontend
         run: |
-          echo "Using clean install with no optional dependencies..."
-          npm ci --no-optional --prefer-offline
+          echo "Installing dependencies..."
+          npm install
         env:
           CI: true
 

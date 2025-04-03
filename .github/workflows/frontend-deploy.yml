@@ -20,27 +20,30 @@ jobs:
 
       - name: Debug Directory Structure
         run: |
-          pwd
+          echo "Repository root:"
           ls -la
-          ls -la SpeedType/frontend/
-          echo "Current working directory: $(pwd)"
+          echo "\nSpeedType directory:"
+          ls -la SpeedType
+          echo "\nFrontend directory:"
+          ls -la SpeedType/frontend
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: SpeedType/frontend/package-lock.json
 
       - name: Install Dependencies
+        working-directory: SpeedType/frontend
         run: |
-          cd SpeedType/frontend
-          npm ci
+          echo "Installing dependencies in $(pwd)"
+          npm install
 
       - name: Build
+        working-directory: SpeedType/frontend
         run: |
-          cd SpeedType/frontend
+          echo "Building in $(pwd)"
           npm run build
+          echo "Build output:"
           ls -la dist/
 
       - name: Deploy to GitHub Pages

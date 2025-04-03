@@ -18,26 +18,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug Directory Structure
+        run: |
+          pwd
+          ls -la
+          ls -la SpeedType/frontend/
+          echo "Current working directory: $(pwd)"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: 'SpeedType/frontend/package-lock.json'
+          cache-dependency-path: SpeedType/frontend/package-lock.json
 
       - name: Install Dependencies
-        working-directory: SpeedType/frontend
-        run: npm ci
+        run: |
+          cd SpeedType/frontend
+          npm ci
 
       - name: Build
-        working-directory: SpeedType/frontend
-        run: npm run build
+        run: |
+          cd SpeedType/frontend
+          npm run build
+          ls -la dist/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./SpeedType/frontend/dist
+          publish_dir: SpeedType/frontend/dist
           cname: speedtype.robocat.ai
           commit_message: ${{ github.event.head_commit.message }}
 

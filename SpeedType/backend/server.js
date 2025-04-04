@@ -32,7 +32,12 @@ let racers = {}; // Store racer data { socketId: { id, name, progress } }
 
 // Basic route for health check
 app.get('/', (req, res) => {
-  res.json({ status: 'healthy', message: 'SpeedType Backend is running!' });
+  res.json({ 
+    status: 'healthy', 
+    message: 'SpeedType Backend is running!',
+    version: '1.0.1',
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Socket.IO connection handling

@@ -350,3 +350,32 @@ button:disabled {
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
+
+.multiplayer-waiting {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin: 2rem 0;
+}
+
+.multiplayer-controls {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+.back-button {
+  background-color: #666;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.back-button:hover {
+  background-color: #777;
+}

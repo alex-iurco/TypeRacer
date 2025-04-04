@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import io from 'socket.io-client'
 import './App.css'
 import RaceTrack from './components/RaceTrack'
@@ -62,6 +61,7 @@ function App() {
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
   const [countdown, setCountdown] = useState(0) // Add state for countdown
   const [currentRoom, setCurrentRoom] = useState(null)
+  const [isMultiplayer, setIsMultiplayer] = useState(false)
 
   // Fetch motivational quotes
   const fetchQuotes = async () => {
@@ -280,153 +280,141 @@ function App() {
     socket.emit('ready');
   };
 
+  const startMultiplayerMode = () => {
+    setIsMultiplayer(true);
+    setRaceState('waiting');
+    setMyProgress(0);
+    setTypedText('');
+    setMyWpm(0);
+    setTextToType('');
+    const roomId = 'default-room';
+    socket.emit('joinRoom', roomId);
+    setCurrentRoom(roomId);
+  };
+
+  const backToSinglePlayer = () => {
+    setIsMultiplayer(false);
+    setRaceState('waiting');
+    setMyProgress(0);
+    setTypedText('');
+    setMyWpm(0);
+    setTextToType('');
+    setCurrentRoom(null);
+  };
+
   return (
-    <Router>
-      <div className="app-container">
-        <header className="app-header">
-          <h1>
-            SpeedType Racing
-            <span className="version">v{APP_VERSION}</span>
-          </h1>
-        </header>
-        <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-          {isConnected ? 'Connected' : 'Disconnected'}
-        </div>
-        <Routes>
-          <Route path="/" element={<Navigate to="/race" replace />} />
-          <Route
-            path="/race"
-            element={
-              <div className="race-container">
-                {/* Show setup screen only when in waiting state and no countdown */}
-                {raceState === 'waiting' && countdown === 0 && (
-                  <div className="race-setup">
-                    <div className="quote-selection">
-                      <h2>Select a Quote or Type Your Own</h2>
-                      <div className="quotes-grid">
-                        {isLoadingQuotes ? (
-                          <p>Loading quotes...</p>
-                        ) : (
-                          quotes.map((quote, index) => (
-                            <div
-                              key={index}
-                              className={`quote-card ${customText === quote ? 'selected' : ''}`}
-                              onClick={() => handleQuoteSelect(quote)}
-                            >
-                              <p>{quote.length > 100 ? quote.substring(0, 100) + '...' : quote}</p>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      <div className="custom-text-input">
-                        <textarea
-                          value={customText}
-                          onChange={(e) => setCustomText(e.target.value)}
-                          placeholder="Or type your own text here..."
-                          rows={4}
-                        />
-                      </div>
-                      <button 
-                        className="start-button"
-                        onClick={handleStartRace}
-                        disabled={!isConnected}
-                      >
-                        Start Single Player Race
-                      </button>
-                      <button 
-                        className="multiplayer-button"
-                        onClick={() => window.location.href = '/race/multiplayer'}
-                        disabled={!isConnected}
-                      >
-                        Join Multiplayer Race
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {/* Show countdown overlay when countdown is active */}
-                {countdown > 0 && (
-                  <div className="countdown-overlay">
-                    <div className="countdown">{countdown}</div>
-                    {textToType && (
-                      <div className="race-text" data-testid="race-text">
-                        {textToType}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {/* Show race components when text is available and either countdown is active or race is in progress */}
-                {textToType && (countdown > 0 || raceState === 'racing' || raceState === 'finished') && (
-                  <>
-                    <RaceTrack 
-                      racers={racers} 
-                      myProgress={myProgress} 
-                      countdown={countdown}
-                      isReady={true}
-                      raceState={raceState}
-                    />
-                    <TypingArea
-                      textToType={textToType}
-                      onProgress={handleTypingProgress}
-                      typedText={typedText}
-                      setTypedText={setTypedText}
-                      onStart={handleStartRace}
-                      isRaceComplete={raceState === 'finished'}
-                      isStarted={raceState === 'racing' || countdown > 0}
-                      isMultiplayer={false}
-                    />
-                  </>
-                )}
-              </div>
-            }
-          />
-          <Route
-            path="/race/multiplayer"
-            element={
-              <div className="race-container">
-                <h2>Multiplayer Race</h2>
-                {raceState === 'waiting' ? (
-                  <div className="multiplayer-waiting">
-                    <h2>Waiting for Players</h2>
-                    <button 
-                      className="ready-button"
-                      onClick={handleReady}
-                      disabled={!isConnected}
-                    >
-                      Ready to Race
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {countdown > 0 && (
-                      <div className="countdown-overlay">
-                        <div className="countdown">{countdown}</div>
-                      </div>
-                    )}
-                    <RaceTrack 
-                      racers={racers} 
-                      myProgress={myProgress} 
-                      countdown={countdown}
-                      isReady={true}
-                      onReady={handleReady}
-                      raceState={raceState}
-                    />
-                    <TypingArea
-                      textToType={textToType}
-                      onProgress={handleTypingProgress}
-                      typedText={typedText}
-                      setTypedText={setTypedText}
-                      isRaceComplete={raceState === 'finished'}
-                      isStarted={raceState === 'racing'}
-                    />
-                  </>
-                )}
-              </div>
-            }
-          />
-        </Routes>
+    <div className="app-container">
+      <header className="app-header">
+        <h1>
+          SpeedType Racing
+          <span className="version">v{APP_VERSION}</span>
+        </h1>
+      </header>
+      <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+        {isConnected ? 'Connected' : 'Disconnected'}
       </div>
-    </Router>
-  )
+      <div className="race-container">
+        {!isMultiplayer && raceState === 'waiting' && countdown === 0 && (
+          <div className="race-setup">
+            <div className="quote-selection">
+              <h2>Select a Quote or Type Your Own</h2>
+              <div className="quotes-grid">
+                {isLoadingQuotes ? (
+                  <p>Loading quotes...</p>
+                ) : (
+                  quotes.map((quote, index) => (
+                    <div
+                      key={index}
+                      className={`quote-card ${customText === quote ? 'selected' : ''}`}
+                      onClick={() => handleQuoteSelect(quote)}
+                    >
+                      <p>{quote.length > 100 ? quote.substring(0, 100) + '...' : quote}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="custom-text-input">
+                <textarea
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                  placeholder="Or type your own text here..."
+                  rows={4}
+                />
+              </div>
+              <button 
+                className="start-button"
+                onClick={handleStartRace}
+                disabled={!isConnected}
+              >
+                Start Single Player Race
+              </button>
+              <button 
+                className="multiplayer-button"
+                onClick={startMultiplayerMode}
+                disabled={!isConnected}
+              >
+                Join Multiplayer Race
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isMultiplayer && raceState === 'waiting' && (
+          <div className="multiplayer-waiting">
+            <h2>Multiplayer Race</h2>
+            <div className="multiplayer-controls">
+              <button 
+                className="ready-button"
+                onClick={handleReady}
+                disabled={!isConnected}
+              >
+                Ready to Race
+              </button>
+              <button 
+                className="back-button"
+                onClick={backToSinglePlayer}
+              >
+                Back to Single Player
+              </button>
+            </div>
+          </div>
+        )}
+
+        {countdown > 0 && (
+          <div className="countdown-overlay">
+            <div className="countdown">{countdown}</div>
+            {textToType && (
+              <div className="race-text" data-testid="race-text">
+                {textToType}
+              </div>
+            )}
+          </div>
+        )}
+
+        {textToType && (countdown > 0 || raceState === 'racing' || raceState === 'finished') && (
+          <>
+            <RaceTrack 
+              racers={racers} 
+              myProgress={myProgress} 
+              countdown={countdown}
+              isReady={true}
+              raceState={raceState}
+            />
+            <TypingArea
+              textToType={textToType}
+              onProgress={handleTypingProgress}
+              typedText={typedText}
+              setTypedText={setTypedText}
+              onStart={handleStartRace}
+              isRaceComplete={raceState === 'finished'}
+              isStarted={raceState === 'racing' || countdown > 0}
+              isMultiplayer={isMultiplayer}
+            />
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default App

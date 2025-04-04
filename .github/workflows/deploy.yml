@@ -6,6 +6,10 @@ on:
     paths:
       - 'SpeedType/frontend/**'
       - '.github/workflows/deploy.yml'
+  workflow_run:
+    workflows: ["Version Bump"]
+    types:
+      - completed
 
 jobs:
   build-and-deploy:
@@ -35,6 +39,8 @@ jobs:
           ls -la
           echo "\nFrontend directory contents:"
           ls -la SpeedType/frontend || echo "Frontend directory not found"
+          echo "\nCurrent version:"
+          node -p "require('./SpeedType/frontend/package.json').version"
 
       - name: Install Dependencies
         working-directory: SpeedType/frontend

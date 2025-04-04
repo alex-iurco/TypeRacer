@@ -4,6 +4,7 @@ import io from 'socket.io-client'
 import './App.css'
 import RaceTrack from './components/RaceTrack'
 import TypingArea from './components/TypingArea'
+import packageJson from '../package.json'
 
 // Connect to the local backend server for development
 const socket = io('http://localhost:3001', {
@@ -277,6 +278,12 @@ function App() {
   return (
     <Router>
       <div className="app-container">
+        <header className="app-header">
+          <h1>
+            SpeedType Racing
+            <span className="version">v{packageJson.version}</span>
+          </h1>
+        </header>
         <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
           {isConnected ? 'Connected' : 'Disconnected'}
         </div>

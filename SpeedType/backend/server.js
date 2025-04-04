@@ -40,7 +40,13 @@ io.on('connection', (socket) => {
   console.log('a user connected:', socket.id);
 
   // Add new racer with default state
-  racers[socket.id] = { id: socket.id, name: `Guest_${socket.id.substring(0, 4)}`, progress: 0 };
+  racers[socket.id] = { 
+    id: socket.id, 
+    name: `Guest_${socket.id.substring(0, 4)}`, 
+    progress: 0,
+    wpm: 0,
+    finished: false 
+  };
   console.log('Current racers:', racers);
 
   // Notify others about the new racer
@@ -73,31 +79,73 @@ io.on('connection', (socket) => {
     if (racers[socket.id]) {
       // Only update progress if there is an active race text
       if (currentRaceText !== null) {
-          racers[socket.id].progress = data.progress;
-          racers[socket.id].wpm = data.wpm; // Add WPM to racer data
+        racers[socket.id].progress = data.progress;
+        // Don't broadcast on every progress update
+        if (data.progress === 100) {
+          racers[socket.id].finished = true;
           io.emit('race_update', Object.values(racers));
+          
+          // Check if all racers finished
+          const allFinished = Object.values(racers).every(racer => racer.progress === 100);
+          if (allFinished) {
+            io.emit('room_state', { status: 'finished' });
+          }
+        }
       } else {
-          console.log(`Progress update from ${socket.id} ignored, no active race.`);
+        console.log(`Progress update from ${socket.id} ignored, no active race.`);
       }
     } else {
       console.log(`Received progress from unknown socket: ${socket.id}`);
     }
   });
 
-  // Handle disconnect
+  // Handle race completion
+  socket.on('race_complete', () => {
+    if (racers[socket.id]) {
+      racers[socket.id].finished = true;
+      racers[socket.id].progress = 100;
+      io.emit('race_update', Object.values(racers));
+      
+      // Check if all racers finished
+      const allFinished = Object.values(racers).every(racer => racer.progress === 100);
+      if (allFinished) {
+        io.emit('room_state', { status: 'finished' });
+      }
+    }
+  });
+
+  // Handle WPM update
+  socket.on('wpm_update', (data) => {
+    if (racers[socket.id]) {
+      racers[socket.id].wpm = data.wpm;
+      // Don't broadcast on every WPM update
+    } else {
+      console.log(`Received WPM from unknown socket: ${socket.id}`);
+    }
+  });
+
+  // Add periodic update broadcast
+  const updateInterval = setInterval(() => {
+    if (Object.keys(racers).length > 0) {
+      io.emit('race_update', Object.values(racers));
+    }
+  }, 1000); // Send updates every second
+
+  // Clean up interval on disconnect
   socket.on('disconnect', () => {
     console.log('user disconnected:', socket.id);
+    clearInterval(updateInterval);
     const wasRacer = !!racers[socket.id];
     delete racers[socket.id];
     console.log('Current racers:', racers);
     // Only notify if they were actually part of the race state
     if (wasRacer) {
-        io.emit('race_update', Object.values(racers));
+      io.emit('race_update', Object.values(racers));
     }
     // If no racers left, maybe clear the race text?
     if (Object.keys(racers).length === 0) {
-        console.log("No racers left, clearing race text.");
-        currentRaceText = null;
+      console.log("No racers left, clearing race text.");
+      currentRaceText = null;
     }
   });
 

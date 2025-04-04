@@ -1,163 +1,282 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './TypingArea.css';
 
-// Receive typedText and setTypedText as props now
-function TypingArea({ textToType, onProgress, typedText, setTypedText }) {
-  // const [typedText, setTypedText] = useState(''); // Remove local state
+const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onStart, isRaceComplete }) => {
+  const [input, setInput] = useState('');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [isCurrentWordIncorrect, setIsCurrentWordIncorrect] = useState(false);
-  const [maxProgress, setMaxProgress] = useState(0); // Track maximum progress achieved
+  const [isError, setIsError] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [wpm, setWpm] = useState(0);
-  const [maxWordsTyped, setMaxWordsTyped] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [progress, setProgress] = useState(0);
   const inputRef = useRef(null);
+  const lastProgressRef = useRef(0);
+  const textRef = useRef(textToType);
 
-  // Reset WPM and start time when text changes
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-    setTypedText('');
-    setIsCurrentWordIncorrect(false);
-    setMaxProgress(0);
-    setStartTime(null);
-    setWpm(0);
-    setMaxWordsTyped(0);
-  }, [textToType, setTypedText]);
+  // Split text into words
+  const words = textToType.split(' ');
+  const currentWord = words[currentWordIndex] || '';
 
-  // Calculate WPM based on maximum words typed
+  // Update text ref when text changes
   useEffect(() => {
-    if (!startTime || maxWordsTyped === 0) {
+    console.log('Text changed:', textToType);
+    textRef.current = textToType;
+  }, [textToType]);
+
+  // Reset state when race starts or text changes
+  useEffect(() => {
+    console.log('Text or race state changed:', { textToType, isStarted, isRaceComplete });
+    if (textToType) {
+      setInput('');
+      setCurrentWordIndex(0);
+      setIsError(false);
+      setProgress(0);
+      lastProgressRef.current = 0;
+      setIsCompleted(false);
+      setStartTime(null);
       setWpm(0);
+    }
+  }, [textToType]);
+
+  // Set start time when race starts
+  useEffect(() => {
+    console.log('Race started:', isStarted);
+    if (isStarted && !startTime) {
+      setStartTime(Date.now());
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }, [isStarted]);
+
+  // Only update WPM periodically
+  useEffect(() => {
+    if (!startTime) return;
+    if (!isStarted && !isCompleted) return;
+    if (isCompleted) {
+      // Don't start interval if race is completed
       return;
     }
 
-    const timeElapsed = (Date.now() - startTime) / 1000 / 60; // Convert to minutes
-    const currentWpm = Math.round(maxWordsTyped / timeElapsed);
-    setWpm(currentWpm);
-  }, [maxWordsTyped, startTime]);
+    const calculateWPM = () => {
+      const timeElapsed = (Date.now() - startTime) / 1000 / 60; // in minutes
+      if (timeElapsed === 0) return 0;
+      
+      // Count completed words including the current word if it's complete
+      let completedWords = currentWordIndex;
+      if (input === currentWord) {
+        completedWords++;
+      }
+      
+      return Math.round(completedWords / timeElapsed);
+    };
 
-  // Also focus when clicking anywhere in the typing area container
-  const handleContainerClick = () => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
+    const interval = setInterval(() => {
+      if (isCompleted) {
+        // Clear interval if race becomes completed
+        clearInterval(interval);
+        return;
+      }
+      const currentWPM = calculateWPM();
+      setWpm(currentWPM);
+      onProgress(lastProgressRef.current, input, currentWPM);
+    }, 1000); // Update every second
 
-  const calculateProgress = (currentInput) => {
-    let correctChars = 0;
-    for (let i = 0; i < currentInput.length && i < textToType.length; i++) {
-      if (currentInput[i] === textToType[i]) {
-        correctChars++;
+    // Calculate initial WPM
+    const initialWPM = calculateWPM();
+    setWpm(initialWPM);
+    onProgress(lastProgressRef.current, input, initialWPM);
+
+    return () => clearInterval(interval);
+  }, [isStarted, isCompleted, startTime, currentWordIndex, input, currentWord]);
+
+  const calculateProgress = (newInput) => {
+    if (!textToType) return 0;
+    if (isCompleted) return 100;
+
+    // Calculate total characters in completed words
+    const completedWords = words.slice(0, currentWordIndex);
+    let totalCorrectChars = completedWords.join(' ').length;
+    
+    // Add correct characters from current word
+    if (newInput) {
+      for (let i = 0; i < newInput.length && i < currentWord.length; i++) {
+        if (newInput[i] === currentWord[i]) {
+          totalCorrectChars++;
+        } else {
+          break;
+        }
       }
     }
-    
-    const currentProgress = Math.min(100, (correctChars / textToType.length) * 100);
-    
-    if (currentProgress > maxProgress) {
-      setMaxProgress(currentProgress);
-      return currentProgress;
-    }
-    
-    return maxProgress;
+
+    // Calculate progress percentage
+    const totalChars = textToType.length;
+    const progress = Math.min(100, Math.round((totalCorrectChars / totalChars) * 100));
+    return progress;
   };
 
-  const handleInputChange = (event) => {
-    const currentInput = event.target.value;
-    setTypedText(currentInput);
-
-    // Set start time on first input if not set
-    if (!startTime) {
-      setStartTime(Date.now());
-    }
-
-    // Calculate and update progress
-    const progress = calculateProgress(currentInput);
+  const handleInputChange = (e) => {
+    if (!isStarted || isCompleted || !textToType) return;
     
-    // Calculate current words typed correctly
-    let currentWordsTyped = 0;
-    const sourceWords = textToType.split(/\s+/);
-    const typedWords = currentInput.split(/\s+/);
-    
-    for (let i = 0; i < typedWords.length && i < sourceWords.length; i++) {
-      if (typedWords[i] === sourceWords[i]) {
-        currentWordsTyped++;
+    const newInput = e.target.value;
+    setInput(newInput);
+
+    // Check if the current input matches the current word
+    if (currentWord.startsWith(newInput)) {
+      setIsError(false);
+      const newProgress = calculateProgress(newInput);
+      setProgress(newProgress);
+      lastProgressRef.current = newProgress;
+      // Only emit progress update on actual progress change
+      if (newProgress !== progress) {
+        onProgress(newProgress, newInput, wpm);
       }
-    }
 
-    // Update max words typed if current is higher
-    if (currentWordsTyped > maxWordsTyped) {
-      setMaxWordsTyped(currentWordsTyped);
-    }
-
-    onProgress(progress, currentInput, wpm);
-
-    // Check if the current word being typed has errors
-    const currentSourceWordIndex = typedWords.length - 1;
-    const currentSourceWord = sourceWords[currentSourceWordIndex];
-    const currentTypedWord = typedWords[currentSourceWordIndex];
-
-    if (currentTypedWord && currentSourceWord) {
-      const partOfSourceWord = currentSourceWord.substring(0, currentTypedWord.length);
-      setIsCurrentWordIncorrect(currentTypedWord !== partOfSourceWord);
+      // Check if we've completed the last word
+      if (currentWordIndex === words.length - 1 && newInput === currentWord) {
+        setIsCompleted(true);
+        const finalProgress = 100;
+        setProgress(finalProgress);
+        lastProgressRef.current = finalProgress;
+        // Calculate final WPM
+        const timeElapsed = (Date.now() - startTime) / 1000 / 60;
+        const finalWPM = Math.round((currentWordIndex + 1) / timeElapsed);
+        setWpm(finalWPM);
+        onProgress(finalProgress, newInput, finalWPM);
+      }
     } else {
-      setIsCurrentWordIncorrect(false);
+      setIsError(true);
+    }
+
+    // If space is pressed and input matches current word
+    if (e.nativeEvent.data === ' ' && newInput.trim() === currentWord) {
+      if (currentWordIndex === words.length - 1) {
+        // Race completed
+        setIsCompleted(true);
+        const finalProgress = 100;
+        setProgress(finalProgress);
+        lastProgressRef.current = finalProgress;
+        // Calculate final WPM
+        const timeElapsed = (Date.now() - startTime) / 1000 / 60;
+        const finalWPM = Math.round((currentWordIndex + 1) / timeElapsed);
+        setWpm(finalWPM);
+        onProgress(finalProgress, newInput, finalWPM);
+      } else {
+        // Move to next word
+        setCurrentWordIndex(prev => prev + 1);
+        setInput('');
+        setIsError(false);
+        
+        // Calculate progress for the completed word including its space
+        const completedText = words.slice(0, currentWordIndex + 1).join(' ');
+        const newProgress = calculateProgress(completedText);
+        
+        // Ensure progress never decreases
+        if (newProgress > lastProgressRef.current) {
+          setProgress(newProgress);
+          lastProgressRef.current = newProgress;
+          onProgress(newProgress, '', wpm);
+        } else {
+          // If progress would decrease, keep the previous progress
+          onProgress(lastProgressRef.current, '', wpm);
+        }
+      }
     }
   };
 
-  // Placeholder text if none is provided yet
-  const displayText = textToType || "Loading text...";
+  const renderText = () => {
+    if (!textToType) {
+      console.log('No text to render');
+      return null;
+    }
+    
+    console.log('Rendering text:', textToType);
+    let typedCharCount = 0;
+    const typedWords = words.slice(0, currentWordIndex).join(' ');
+    typedCharCount = typedWords.length + (currentWordIndex > 0 ? 1 : 0); // Add space if not first word
 
-  // Split text into characters for highlighting later
-  const textChars = displayText.split('');
-
-  return (
-    <div className="typing-area-container" onClick={handleContainerClick}>
-      <h2>Type the text below:</h2>
+    return (
       <div className="text-display">
-        {/* Highlight logic will need typedText */}
-        {textChars.map((char, index) => {
-          let className = 'char-pending'; // Default class for untyped chars
-          if (index < typedText.length) {
-            if (char === typedText[index]) {
-              className = 'char-typed char-correct';
-            } else {
-              className = 'char-typed char-incorrect';
-            }
-          }
-          // Add class for cursor position (optional, simple version)
-          // if (index === typedText.length) {
-          //   className += ' char-current';
-          // }
-
-          // Handle spaces specifically if needed for styling
-          if (char === ' ') {
-              return <span key={index} className={`${className} char-space`}> </span>;
-          }
-
+        {words.map((word, wordIndex) => {
+          const isCurrentWord = wordIndex === currentWordIndex;
+          const isPastWord = wordIndex < currentWordIndex;
+          
           return (
-            <span key={index} className={className}>
-              {char}
-            </span>
+            <React.Fragment key={wordIndex}>
+              {wordIndex > 0 && ' '}
+              {word.split('').map((char, charIndex) => {
+                const isTyped = isPastWord || (isCurrentWord && charIndex < input.length);
+                const isCorrect = isPastWord || (isCurrentWord && input[charIndex] === char);
+                
+                return (
+                  <span
+                    key={charIndex}
+                    className={`
+                      ${isTyped ? 'char-typed' : 'char-pending'}
+                      ${isTyped ? (isCorrect ? 'char-correct' : 'char-incorrect') : ''}
+                      ${char === ' ' ? 'char-space' : ''}
+                    `}
+                  >
+                    {char}
+                  </span>
+                );
+              })}
+            </React.Fragment>
           );
         })}
       </div>
-      <input
-        ref={inputRef}
-        type="text"
-        value={typedText}
-        onChange={handleInputChange}
-        placeholder="Start typing here..."
-        className={`typing-input ${isCurrentWordIncorrect ? 'input-error' : ''}`}
-        disabled={!textToType} // Only disable if there's no text to type
-        autoCapitalize="none"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck="false"
-      />
-      {/* WPM and Accuracy display can go here */}
+    );
+  };
+
+  return (
+    <div className="typing-area-container">
+      {/* Debug info */}
+      <div style={{ display: 'none' }}>
+        <p>Text: {textToType}</p>
+        <p>Started: {isStarted ? 'yes' : 'no'}</p>
+        <p>Complete: {isRaceComplete ? 'yes' : 'no'}</p>
+      </div>
+
+      {/* Always show text if available */}
+      {textToType && (
+        <div className="text-container" style={{ opacity: isStarted ? 1 : 0.7 }}>
+          {renderText()}
+        </div>
+      )}
+      
+      {/* Show start button only in appropriate state */}
+      {!isStarted && !isMultiplayer && !isRaceComplete && (
+        <button className="start-button" onClick={onStart}>
+          Start Race
+        </button>
+      )}
+      
+      {/* Show input field when race is active */}
+      {isStarted && !isCompleted && textToType && (
+        <div className="input-container">
+          <input
+            ref={inputRef}
+            type="text"
+            value={input}
+            onChange={handleInputChange}
+            className={`typing-input ${isError ? 'input-error' : ''}`}
+            placeholder="Type here..."
+            disabled={!isStarted || isCompleted}
+            autoFocus
+          />
+          {isError && <div className="error-indicator" />}
+        </div>
+      )}
+      
+      {/* Show completion message */}
+      {isCompleted && (
+        <div className="race-complete">
+          <h3>Race Complete!</h3>
+          <div className="wpm-display">{wpm} WPM</div>
+        </div>
+      )}
     </div>
   );
-}
+};
 
 export default TypingArea; 

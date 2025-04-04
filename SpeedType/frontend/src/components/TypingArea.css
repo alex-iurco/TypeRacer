@@ -1,97 +1,124 @@
 .typing-area-container {
-  margin-top: 2rem;
-  border: 1px solid #555;
-  padding: 1.5rem;
-  border-radius: 8px;
-  background-color: #2a2a2a;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  width: 100%;
 }
 
 .text-display {
-  font-family: 'Consolas', 'Monaco', 'Courier New', Courier, monospace; /* Use common monospace fonts */
-  font-size: 1.3em; /* Slightly larger font */
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 1.2rem;
   line-height: 1.6;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background-color: #333;
-  border-radius: 4px;
-  text-align: left;
-  min-height: 100px; /* Ensure space even when loading */
-  white-space: pre-wrap; /* Preserve whitespace and wrap lines */
-  letter-spacing: 0.05em; /* Add some spacing between letters */
+  padding: 20px;
+  margin: 20px 0;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-/* Base style for all characters */
-.text-display span {
-  /* transition: color 0.1s ease, background-color 0.1s ease; */ /* Optional transition */
-  display: inline-block; /* Needed for background colors */
+.char-pending {
+  color: rgba(255, 255, 255, 0.5);
 }
 
-/* Untyped characters */
-.text-display span.char-pending {
-  color: #666; /* Dim color for untyped text */
+.char-typed {
+  font-weight: 500;
 }
 
-/* Typed characters (base) */
-.text-display span.char-typed {
-  /* Common style for typed characters if needed */
+.char-correct {
+  color: #32cd32;
 }
 
-/* Correctly typed characters */
-.text-display span.char-correct {
-  color: #a0d9a0; /* Light green for correct chars (like image) */
-  /* background-color: #2a3b2a; */ /* Optional subtle background */
+.char-incorrect {
+  color: #dc143c;
+  text-decoration: underline;
+  text-decoration-color: #dc143c;
 }
 
-/* Incorrectly typed characters */
-.text-display span.char-incorrect {
-  color: #d9a0a0; /* Light red for incorrect text */
-  background-color: #4d3030; /* Dark red background (like image highlight) */
-  border-radius: 2px;
-  text-decoration: underline; /* Underline incorrect characters */
-}
-
-/* Special handling for spaces to show background */
-.text-display span.char-space.char-incorrect {
-    padding: 0 0.1em; /* Add padding to make background visible */
+.char-space {
+  margin-right: 4px;
 }
 
 .typing-input {
   width: 100%;
-  padding: 0.8em 1em;
-  font-size: 1.1em;
-  border-radius: 4px;
-  border: 1px solid #555;
-  background-color: #333; /* Dark theme input background */
-  color: #fff; /* Light text for dark theme */
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-  margin-top: 1rem;
-}
-
-.typing-input::placeholder {
-  color: #888; /* Lighter color for placeholder text */
+  padding: 15px;
+  font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ffffff;
+  margin-top: 20px;
 }
 
 .typing-input:focus {
   outline: none;
-  border-color: #646cff;
-  box-shadow: 0 0 5px #646cffaa;
-  background-color: #444; /* Slightly lighter when focused */
+  border-color: #4169e1;
 }
 
-/* Style for input field when current word is incorrect */
 .typing-input.input-error {
-  background-color: #4d3030;
-  border-color: #d9a0a0;
-  color: #fff;
+  border-color: #dc143c;
 }
 
-.typing-input.input-error:focus {
-  box-shadow: 0 0 5px #d9a0a0aa;
+.error-indicator {
+  height: 4px;
+  background-color: #dc143c;
+  margin-top: 8px;
+  border-radius: 2px;
+  animation: pulse-error 1s infinite;
 }
 
-.typing-input:disabled {
-  background-color: #222;
-  color: #666;
+@keyframes pulse-error {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.race-complete {
+  margin-top: 20px;
+  text-align: center;
+  animation: fade-in 0.5s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.race-complete h3 {
+  color: #32cd32;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.wpm-display {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #4169e1;
+}
+
+.start-button {
+  display: block;
+  width: 200px;
+  margin: 20px auto;
+  padding: 12px 24px;
+  background: #4169e1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.start-button:hover {
+  background: #3158d0;
+  transform: translateY(-2px);
+}
+
+.start-button:disabled {
+  background: #666;
   cursor: not-allowed;
-  border-color: #444;
+  opacity: 0.7;
+  transform: none;
 } 

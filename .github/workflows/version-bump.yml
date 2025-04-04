@@ -6,6 +6,7 @@ on:
     paths:
       - 'SpeedType/frontend/**'
       - 'SpeedType/backend/**'
+      - '.github/workflows/version-bump.yml'
       - '!**.md'
       - '!.gitignore'
 

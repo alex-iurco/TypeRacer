@@ -13,13 +13,14 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: false
+        secure: false,
       },
       '/socket.io': {
         target: 'http://localhost:3001',
         changeOrigin: true,
-        ws: true
-      }
+        secure: false,
+        ws: true,
+      },
     }
   },
   preview: {
@@ -39,5 +40,11 @@ export default defineConfig({
         main: './index.html'
       }
     }
-  }
+  },
+  define: {
+    'process.env.BACKEND_URL': JSON.stringify(process.env.NODE_ENV === 'production'
+      ? 'https://speedtype-backend-production.up.railway.app'
+      : 'http://localhost:3001'
+    ),
+  },
 }); 

@@ -6,8 +6,13 @@ import RaceTrack from './components/RaceTrack'
 import TypingArea from './components/TypingArea'
 import { APP_VERSION } from './config/version'
 
-// Connect to the local backend server for development
-const socket = io('http://localhost:3001', {
+// Use production URL in production, localhost in development
+const BACKEND_URL = import.meta.env.PROD 
+  ? 'https://speedtype-backend-production.up.railway.app'
+  : 'http://localhost:3001';
+
+// Connect to the backend server
+const socket = io(BACKEND_URL, {
   transports: ['websocket', 'polling'],
   autoConnect: true,
   reconnection: true,
@@ -62,7 +67,7 @@ function App() {
   const fetchQuotes = async () => {
     setIsLoadingQuotes(true);
     try {
-      const response = await fetch('http://localhost:3001/api/quotes');
+      const response = await fetch(`${BACKEND_URL}/api/quotes`);
       if (!response.ok) {
         throw new Error('Failed to fetch quotes');
       }

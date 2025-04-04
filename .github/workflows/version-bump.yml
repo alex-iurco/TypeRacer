@@ -83,8 +83,12 @@ jobs:
           # Update package.json
           npm version $NEW_VERSION --no-git-tag-version
           
+          # Update version.js
+          echo "// This file is automatically updated by the version bump workflow
+export const APP_VERSION = '$NEW_VERSION';" > src/config/version.js
+          
           # Create commit and tag
-          git add package.json
+          git add package.json src/config/version.js
           git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
           git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
           

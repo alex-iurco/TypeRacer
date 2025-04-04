@@ -4,7 +4,7 @@ import io from 'socket.io-client'
 import './App.css'
 import RaceTrack from './components/RaceTrack'
 import TypingArea from './components/TypingArea'
-import packageJson from '../package.json'
+import { APP_VERSION } from './config/version'
 
 // Connect to the local backend server for development
 const socket = io('http://localhost:3001', {
@@ -281,7 +281,7 @@ function App() {
         <header className="app-header">
           <h1>
             SpeedType Racing
-            <span className="version">v{packageJson.version}</span>
+            <span className="version">v{APP_VERSION}</span>
           </h1>
         </header>
         <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
@@ -293,7 +293,6 @@ function App() {
             path="/race"
             element={
               <div className="race-container">
-                <h1>SpeedType Racing</h1>
                 {/* Show setup screen only when in waiting state and no countdown */}
                 {raceState === 'waiting' && countdown === 0 && (
                   <div className="race-setup">
@@ -379,7 +378,7 @@ function App() {
             path="/race/multiplayer"
             element={
               <div className="race-container">
-                <h1>Multiplayer Race</h1>
+                <h2>Multiplayer Race</h2>
                 {raceState === 'waiting' ? (
                   <div className="multiplayer-waiting">
                     <h2>Waiting for Players</h2>

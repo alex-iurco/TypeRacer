@@ -22,7 +22,9 @@ describe('TypingArea Component', () => {
     );
     
     expect(screen.getByTestId('typing-input')).toBeInTheDocument();
-    expect(screen.getByText(mockText)).toBeInTheDocument();
+    const textDisplay = screen.getByTestId('text-display');
+    expect(textDisplay).toBeInTheDocument();
+    expect(textDisplay.textContent).toBe(mockText);
   });
 
   it('handles user input correctly', () => {
@@ -39,11 +41,11 @@ describe('TypingArea Component', () => {
     fireEvent.change(input, { target: { value: 't' } });
     
     expect(mockSetTypedText).toHaveBeenCalledWith('t');
-    expect(mockOnProgress).toHaveBeenCalledWith({
-      accuracy: 100,
-      progress: 1/9,
-      errors: 0
-    });
+    expect(mockOnProgress).toHaveBeenCalledWith(
+      11.11111111111111,
+      't',
+      0
+    );
   });
 
   it('shows error on incorrect input', () => {
@@ -60,10 +62,10 @@ describe('TypingArea Component', () => {
     fireEvent.change(input, { target: { value: 'x' } });
     
     expect(screen.getByTestId('error-indicator')).toBeVisible();
-    expect(mockOnProgress).toHaveBeenCalledWith({
-      accuracy: 0,
-      progress: 0,
-      errors: 1
-    });
+    expect(mockOnProgress).toHaveBeenCalledWith(
+      0,
+      'x',
+      0
+    );
   });
 }); 

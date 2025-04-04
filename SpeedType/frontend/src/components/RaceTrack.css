@@ -1,99 +1,155 @@
 .race-track-container {
-  margin: 2rem 0;
-  border: 1px solid #555;
-  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.race-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  min-height: 50px;
+}
+
+.countdown {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #4169e1;
+  text-align: center;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.ready-button {
+  background: #32cd32;
+  color: white;
+  padding: 12px 30px;
   border-radius: 8px;
-  background-color: #1a1a1a;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ready-button:hover {
+  background: #2db82d;
+  transform: translateY(-2px);
 }
 
 .race-track {
-  position: relative;
-  height: auto;
-  min-height: 150px;
-  background-color: #2a2a2a;
-  border-radius: 4px;
-  padding: 1rem 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 20px;
+  width: 100%;
 }
 
 .car-lane {
   position: relative;
-  height: 50px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 80px;
+}
+
+.lane-info {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding-right: 120px;
+  margin-bottom: 10px;
+}
+
+.racer-name {
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.racer-stats {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.wpm-display {
+  color: #4169e1;
+  font-weight: 600;
+}
+
+.progress-display {
+  color: #32cd32;
+  font-weight: 600;
+}
+
+.place-display {
+  color: #ffd700;
+  font-weight: 600;
 }
 
 .lane-divider {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  height: 1px;
-  border-bottom: 2px dashed #444;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0px,
+    rgba(255, 255, 255, 0.1) 20px,
+    transparent 20px,
+    transparent 40px
+  );
+}
+
+.race-progress {
+  position: relative;
+  height: 40px;
+  margin-top: 20px;
 }
 
 .car-container {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: left 0.2s ease-out;
-  z-index: 1;
-  max-width: calc(100% - 140px);
-}
-
-.car-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.racer-name {
-  font-size: 0.8em;
-  color: #fff;
-  margin-top: 2px;
-  white-space: nowrap;
-}
-
-.finish-line-stats {
-  position: absolute;
-  right: 30px;
   top: 50%;
   transform: translateY(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  min-width: 100px;
-  padding: 4px 8px;
-  background-color: #2a2a2a;
-  border-radius: 4px;
+  transition: left 0.2s ease-out;
   z-index: 2;
 }
 
-.wpm-display {
-  font-size: 0.9em;
-  color: #fff;
-  opacity: 0.9;
-  white-space: nowrap;
-  padding: 2px 4px;
+.finish-line {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: repeating-linear-gradient(
+    0deg,
+    #ffffff 0px,
+    #ffffff 10px,
+    #000000 10px,
+    #000000 20px
+  );
 }
 
-.place-display {
-  font-size: 0.8em;
-  color: #32cd32;
-  font-weight: bold;
-  white-space: nowrap;
-  padding: 2px 4px;
-}
-
-/* Waiting message styling */
-.race-track p {
+.waiting-message {
   text-align: center;
-  color: #666;
-  margin: 2rem 0;
+  color: #ffffff;
+  padding: 40px;
+}
+
+.waiting-message p {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.sub-message {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem !important;
+  margin-top: 10px !important;
 } 

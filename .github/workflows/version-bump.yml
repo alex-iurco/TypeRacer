@@ -1,0 +1,102 @@
+name: Version Bump
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SpeedType/frontend/**'
+      - 'SpeedType/backend/**'
+      - '!**.md'
+      - '!.gitignore'
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Determine Version Bump Type
+        id: bump-type
+        run: |
+          # Check commit messages since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Last tag: $LAST_TAG"
+          
+          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+          echo "Commits since last tag:"
+          echo "$COMMITS"
+          
+          # Default to patch bump
+          BUMP_TYPE="patch"
+          
+          # Check for specific keywords in commit messages
+          echo "$COMMITS" | grep -iE "BREAKING CHANGE|!:" && BUMP_TYPE="major"
+          echo "$COMMITS" | grep -iE "feat:|feature:" && [ "$BUMP_TYPE" != "major" ] && BUMP_TYPE="minor"
+          
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "Determined bump type: $BUMP_TYPE"
+
+      - name: Bump Version
+        run: |
+          cd SpeedType/frontend
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Split version into components
+          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR="${VERSION_PARTS[0]}"
+          MINOR="${VERSION_PARTS[1]}"
+          PATCH="${VERSION_PARTS[2]}"
+          
+          # Bump version based on type
+          case "${{ steps.bump-type.outputs.bump_type }}" in
+            "major")
+              NEW_VERSION="$((MAJOR + 1)).0.0"
+              ;;
+            "minor")
+              NEW_VERSION="${MAJOR}.$((MINOR + 1)).0"
+              ;;
+            *)
+              NEW_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))"
+              ;;
+          esac
+          
+          echo "New version: $NEW_VERSION"
+          
+          # Update package.json
+          npm version $NEW_VERSION --no-git-tag-version
+          
+          # Update version.js
+          echo "// This file is automatically updated by the version bump workflow
+export const APP_VERSION = '$NEW_VERSION';" > src/config/version.js
+          
+          # Create commit and tag
+          git add package.json src/config/version.js
+          git commit -m "chore: bump version to $NEW_VERSION [skip ci]"
+          git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
+          
+          # Push changes
+          git push
+          git push --tags
+
+      - name: Update Deployment Workflows
+        run: |
+          NEW_VERSION=$(node -p "require('./SpeedType/frontend/package.json').version")
+          echo "Triggering deployment for version $NEW_VERSION" 

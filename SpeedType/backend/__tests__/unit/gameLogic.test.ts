@@ -1,55 +1,42 @@
-import { calculateWPM, validateInput, calculateAccuracy } from '../../utils/gameLogic';
+import { calculateWPM, calculateAccuracy } from '../../utils/gameLogic';
 
-describe('Game Logic', () => {
+describe('Game Logic Utils', () => {
   describe('calculateWPM', () => {
-    it('calculates WPM correctly for perfect typing', () => {
-      const text = 'the quick brown fox';
-      const timeInMs = 12000; // 12 seconds
-      
-      const wpm = calculateWPM(text, text, timeInMs);
-      
-      // 4 words in 12 seconds = 20 WPM
-      expect(wpm).toBe(20);
+    it('should calculate WPM correctly', () => {
+      const typedChars = 10; // 2 words (5 chars per word)
+      const timeInMinutes = 1; // 1 minute
+      const wpm = calculateWPM(typedChars, timeInMinutes);
+      expect(wpm).toBe(2); // 2 words per minute
     });
 
-    it('returns 0 for empty input', () => {
-      expect(calculateWPM('test text', '', 1000)).toBe(0);
-    });
-
-    it('throws error for invalid time', () => {
-      expect(() => calculateWPM('test', 'test', 0)).toThrow();
-    });
-  });
-
-  describe('validateInput', () => {
-    it('validates correct input', () => {
-      expect(validateInput('test', 'test')).toBe(true);
-    });
-
-    it('validates partial correct input', () => {
-      expect(validateInput('test', 'te')).toBe(true);
-    });
-
-    it('invalidates incorrect input', () => {
-      expect(validateInput('test', 'tex')).toBe(false);
+    it('should return 0 for zero time', () => {
+      expect(calculateWPM(10, 0)).toBe(0);
     });
   });
 
   describe('calculateAccuracy', () => {
-    it('calculates 100% accuracy for perfect match', () => {
-      expect(calculateAccuracy('test', 'test')).toBe(100);
+    it('should calculate 100% accuracy for perfect match', () => {
+      const correctChars = 4;
+      const totalChars = 4;
+      expect(calculateAccuracy(correctChars, totalChars)).toBe(100);
     });
 
-    it('calculates partial accuracy', () => {
-      expect(calculateAccuracy('test', 'te')).toBe(50);
+    it('should calculate 50% accuracy for half correct', () => {
+      const correctChars = 2;
+      const totalChars = 4;
+      expect(calculateAccuracy(correctChars, totalChars)).toBe(50);
     });
 
-    it('calculates 0% accuracy for completely wrong input', () => {
-      expect(calculateAccuracy('test', 'xxxx')).toBe(0);
+    it('should calculate 0% accuracy for no correct chars', () => {
+      const correctChars = 0;
+      const totalChars = 4;
+      expect(calculateAccuracy(correctChars, totalChars)).toBe(0);
     });
 
-    it('handles empty input', () => {
-      expect(calculateAccuracy('test', '')).toBe(0);
+    it('should handle zero total chars', () => {
+      const correctChars = 0;
+      const totalChars = 0;
+      expect(calculateAccuracy(correctChars, totalChars)).toBe(100);
     });
   });
 }); 

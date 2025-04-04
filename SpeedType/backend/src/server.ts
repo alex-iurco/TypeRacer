@@ -5,17 +5,27 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { setupRaceSocket } from './socket/raceSocket';
 
+// Load environment variables
 dotenv.config();
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+
+// Get allowed origins from environment
+const getAllowedOrigins = () => {
+  const origins = process.env.ALLOWED_ORIGINS;
+  if (!origins) {
+    console.warn('No ALLOWED_ORIGINS specified, defaulting to localhost:3000');
+    return ['http://localhost:3000'];
+  }
+  return origins.split(',').map(origin => origin.trim());
+};
 
 export const createApp = () => {
   const app = express();
 
+  // Use allowed origins from environment
   app.use(cors({
-    origin: process.env.NODE_ENV === 'production' 
-      ? ['https://typeracer.example.com'] 
-      : ['http://localhost:3000'],
+    origin: getAllowedOrigins(),
     credentials: true
   }));
 
@@ -40,7 +50,9 @@ export const createApp = () => {
       "The only limit to our realization of tomorrow will be our doubts of today.",
       "It does not matter how slowly you go as long as you do not stop."
     ];
-    res.json(quotes);
+    // Shuffle and return 5 random quotes
+    const shuffledQuotes = quotes.sort(() => Math.random() - 0.5).slice(0, 5);
+    res.json(shuffledQuotes);
   });
 
   return app;
@@ -51,9 +63,7 @@ if (require.main === module) {
   const httpServer = createHttpServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.NODE_ENV === 'production'
-        ? ['https://typeracer.example.com']
-        : ['http://localhost:3000'],
+      origin: getAllowedOrigins(),
       methods: ['GET', 'POST'],
       credentials: true
     }

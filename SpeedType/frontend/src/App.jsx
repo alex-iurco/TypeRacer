@@ -1,23 +1,35 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import io from 'socket.io-client'
 import './App.css'
 import RaceTrack from './components/RaceTrack'
 import TypingArea from './components/TypingArea'
 import { APP_VERSION } from './config/version'
+import { config } from './config/env'
 
-// Use production URL in production, localhost in development
-const BACKEND_URL = import.meta.env.PROD 
-  ? 'https://speedtype-backend-production.up.railway.app'
-  : 'http://localhost:3001';
+// Create socket with configuration from env
+const socket = io(config.BACKEND_URL, {
+  ...config.SOCKET_CONFIG,
+  timeout: config.SOCKET_TIMEOUT
+});
 
-// Connect to the backend server
-const socket = io(BACKEND_URL, {
-  transports: ['websocket', 'polling'],
-  autoConnect: true,
-  reconnection: true,
-  reconnectionAttempts: 5,
-  reconnectionDelay: 1000
-})
+// Utility function for handling promises with timeout
+const withTimeout = (promise, ms = config.SOCKET_TIMEOUT) => {
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Operation timed out')), ms);
+  });
+  return Promise.race([promise, timeout]);
+};
+
+// Utility function to ensure socket is ready
+const ensureSocketReady = () => {
+  return new Promise((resolve) => {
+    if (socket.connected) {
+      resolve();
+    } else {
+      socket.once('connect', resolve);
+    }
+  });
+};
 
 // Fisher-Yates shuffle algorithm
 const shuffle = (array) => {
@@ -50,6 +62,7 @@ const fallbackQuotes = [
 
 function App() {
   const [isConnected, setIsConnected] = useState(socket.connected)
+  const [connectionError, setConnectionError] = useState(null)
   const [raceState, setRaceState] = useState('waiting') // 'waiting', 'racing', 'finished'
   const [textToType, setTextToType] = useState('')
   const [racers, setRacers] = useState([])
@@ -62,12 +75,29 @@ function App() {
   const [countdown, setCountdown] = useState(0) // Add state for countdown
   const [currentRoom, setCurrentRoom] = useState(null)
   const [isMultiplayer, setIsMultiplayer] = useState(false)
+  const [isJoiningRoom, setIsJoiningRoom] = useState(false)
 
-  // Fetch motivational quotes
-  const fetchQuotes = async () => {
+  // Reset game state
+  const resetGameState = useCallback(() => {
+    setRaceState('waiting')
+    setTextToType('')
+    setRacers([])
+    setMyProgress(0)
+    setTypedText('')
+    setMyWpm(0)
+    setCountdown(0)
+    setCurrentRoom(null)
+    setConnectionError(null)
+  }, []);
+
+  // Fetch quotes with error handling and retries
+  const fetchQuotes = async (retries = 3) => {
     setIsLoadingQuotes(true);
     try {
-      const response = await fetch(`${BACKEND_URL}/api/quotes`);
+      const response = await withTimeout(
+        fetch(`${config.BACKEND_URL}/api/quotes`),
+        config.SOCKET_TIMEOUT
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch quotes');
       }
@@ -75,7 +105,11 @@ function App() {
       setQuotes(data);
     } catch (error) {
       console.error('Error fetching quotes:', error);
-      // Fallback to local quotes if API fails
+      if (retries > 0 && error.message === 'Operation timed out') {
+        setTimeout(() => fetchQuotes(retries - 1), config.RETRY_DELAY);
+        return;
+      }
+      // Fallback to local quotes if all retries fail
       const shuffledQuotes = shuffle([...fallbackQuotes]).slice(0, 5);
       setQuotes(shuffledQuotes);
     } finally {
@@ -83,57 +117,64 @@ function App() {
     }
   };
 
-  // Fetch quotes when component mounts
-  useEffect(() => {
-    fetchQuotes();
-  }, []);
-
+  // Socket event handlers with error recovery
   useEffect(() => {
     function onConnect() {
-      setIsConnected(true)
-      console.log('Connected to backend')
-      // If we're in a room, rejoin it
+      console.log('Connected to backend');
+      setIsConnected(true);
+      setConnectionError(null);
+      
+      // Attempt to rejoin room if we were in one
       if (currentRoom) {
-        socket.emit('joinRoom', currentRoom)
+        socket.emit('joinRoom', currentRoom);
       }
     }
 
-    function onDisconnect() {
-      setIsConnected(false)
-      console.log('Disconnected from backend')
-      setTextToType('')
-      setRacers([])
-      setMyProgress(0)
-      setRaceState('waiting')
-      setCustomText('')
-      setMyWpm(0)
-      setCountdown(0)
+    function onDisconnect(reason) {
+      console.log('Disconnected from backend:', reason);
+      setIsConnected(false);
+      setConnectionError(`Connection lost: ${reason}`);
+      resetGameState();
+    }
+
+    function onConnectError(error) {
+      console.error('Connection error:', error);
+      setConnectionError(`Failed to connect: ${error.message}`);
+      setIsConnected(false);
+    }
+
+    function onError(error) {
+      console.error('Socket error:', error);
+      setConnectionError(`Socket error: ${error.message}`);
     }
 
     function onRoomState(state) {
-      console.log('Received room state:', state)
-      // Only update race state if we're not already finished
+      console.log('Room state:', state);
+      if (state.error) {
+        setConnectionError(`Room error: ${state.error}`);
+        return;
+      }
       if (raceState !== 'finished') {
-        setRaceState(state.status)
+        setRaceState(state.status);
       }
     }
 
     function onRaceUpdate(updatedRacers) {
-      console.log('Received race update:', updatedRacers)
-      // Find our racer
-      const myRacer = updatedRacers.find(r => r.id === socket.id);
-      
-      // Update other racers without affecting our state
+      if (!Array.isArray(updatedRacers)) {
+        console.error('Invalid race update:', updatedRacers);
+        return;
+      }
+
       setRacers(currentRacers => {
+        const myRacer = updatedRacers.find(r => r.id === socket.id) || 
+                       currentRacers.find(r => r.id === socket.id);
         const otherRacers = updatedRacers.filter(r => r.id !== socket.id);
-        const me = currentRacers.find(r => r.id === socket.id) || myRacer;
         
-        // If we're finished, ensure our progress stays at 100%
-        if (raceState === 'finished' && me) {
-          me.progress = 100;
+        if (raceState === 'finished' && myRacer) {
+          myRacer.progress = 100;
         }
         
-        return [...otherRacers, me];
+        return [...otherRacers, myRacer].filter(Boolean);
       });
     }
 
@@ -141,52 +182,191 @@ function App() {
       console.log('Countdown:', value);
       setCountdown(value);
       
-      // Reset state and ensure text is set at countdown start
       if (value === 3) {
-        console.log('Countdown started, resetting state');
+        console.log('Race starting, resetting state');
         setMyProgress(0);
         setTypedText('');
         setMyWpm(0);
       }
       
-      // Start race when countdown ends
       if (value === 0) {
-        console.log('Countdown ended, starting race with text:', textToType);
-        setRaceState('racing');
-        // Ensure text is set
+        console.log('Race beginning with text:', textToType);
         if (!textToType) {
-          console.error('No text set when countdown ended');
+          setConnectionError('No text received for race');
+          resetGameState();
+          return;
         }
+        setRaceState('racing');
       }
     }
 
     function onReceiveText(text) {
-      console.log('Received text:', text);
-      if (typeof text === 'string' && text.trim()) {
-        const formattedText = text.trim();
-        console.log('Setting received text:', formattedText);
-        setTextToType(formattedText);
-      } else {
-        console.error('Invalid text received:', text);
+      console.log('Received race text');
+      if (typeof text !== 'string' || !text.trim()) {
+        setConnectionError('Invalid race text received');
+        return;
       }
+      setTextToType(text.trim());
     }
 
-    socket.on('connect', onConnect)
-    socket.on('disconnect', onDisconnect)
-    socket.on('room_state', onRoomState)
-    socket.on('race_text', onReceiveText)
-    socket.on('race_update', onRaceUpdate)
-    socket.on('countdown', onCountdown)
+    // Register event handlers
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
+    socket.on('error', onError);
+    socket.on('room_state', onRoomState);
+    socket.on('race_text', onReceiveText);
+    socket.on('race_update', onRaceUpdate);
+    socket.on('countdown', onCountdown);
 
     return () => {
-      socket.off('connect', onConnect)
-      socket.off('disconnect', onDisconnect)
-      socket.off('room_state', onRoomState)
-      socket.off('race_text', onReceiveText)
-      socket.off('race_update', onRaceUpdate)
-      socket.off('countdown', onCountdown)
+      // Cleanup event handlers
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
+      socket.off('error', onError);
+      socket.off('room_state', onRoomState);
+      socket.off('race_text', onReceiveText);
+      socket.off('race_update', onRaceUpdate);
+      socket.off('countdown', onCountdown);
+    };
+  }, [currentRoom, raceState, textToType, resetGameState]);
+
+  // Handle race start with proper error handling
+  const handleStartRace = async () => {
+    try {
+      if (!isConnected) {
+        throw new Error('Not connected to server');
+      }
+      
+      if (isJoiningRoom) {
+        return;
+      }
+      
+      setIsJoiningRoom(true);
+      setConnectionError(null);
+      
+      // Ensure socket is connected
+      await withTimeout(ensureSocketReady(), config.SOCKET_TIMEOUT);
+      
+      const raceText = customText.trim() || quotes[Math.floor(Math.random() * quotes.length)] || fallbackQuotes[0];
+      console.log('Starting race');
+      
+      const singlePlayerRoom = `single-player-${Date.now()}`;
+      
+      // Reset state
+      setRaceState('waiting');
+      setMyProgress(0);
+      setTypedText('');
+      setMyWpm(0);
+      setTextToType(raceText);
+      
+      setRacers([{
+        id: socket.id,
+        name: 'You',
+        progress: 0,
+        wpm: 0
+      }]);
+
+      // Join room with timeout
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Room join timeout'));
+        }, config.SOCKET_TIMEOUT);
+
+        socket.emit('joinRoom', singlePlayerRoom);
+        setCurrentRoom(singlePlayerRoom);
+
+        socket.once('roomJoined', () => {
+          clearTimeout(timeout);
+          socket.emit('submit_custom_text', raceText);
+          setTimeout(() => {
+            socket.emit('ready');
+            resolve();
+          }, config.RETRY_DELAY);
+        });
+      });
+    } catch (error) {
+      console.error('Failed to start race:', error);
+      setConnectionError(`Failed to start race: ${error.message}`);
+      resetGameState();
+    } finally {
+      setIsJoiningRoom(false);
     }
-  }, [currentRoom, raceState, textToType])
+  };
+
+  // Handle multiplayer ready state with error handling
+  const handleReady = async () => {
+    try {
+      if (!isConnected) {
+        throw new Error('Not connected to server');
+      }
+      
+      if (isJoiningRoom) {
+        return;
+      }
+      
+      setIsJoiningRoom(true);
+      setConnectionError(null);
+      
+      await withTimeout(ensureSocketReady(), config.SOCKET_TIMEOUT);
+      
+      const roomId = 'default-room';
+      
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Room join timeout'));
+        }, config.SOCKET_TIMEOUT);
+
+        socket.emit('joinRoom', roomId);
+        setCurrentRoom(roomId);
+
+        socket.once('roomJoined', () => {
+          clearTimeout(timeout);
+          setTimeout(() => {
+            socket.emit('ready');
+            resolve();
+          }, config.RETRY_DELAY);
+        });
+      });
+    } catch (error) {
+      console.error('Failed to join multiplayer:', error);
+      setConnectionError(`Failed to join multiplayer: ${error.message}`);
+      resetGameState();
+    } finally {
+      setIsJoiningRoom(false);
+    }
+  };
+
+  // Navigation handling
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isMultiplayer) {
+        backToSinglePlayer();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMultiplayer]);
+
+  const startMultiplayerMode = () => {
+    if (!isConnected) {
+      setConnectionError('Cannot start multiplayer: not connected');
+      return;
+    }
+    setIsMultiplayer(true);
+    resetGameState();
+    window.history.pushState({}, '', window.location.pathname);
+  };
+
+  const backToSinglePlayer = () => {
+    if (currentRoom) {
+      socket.emit('leaveRoom', currentRoom);
+    }
+    setIsMultiplayer(false);
+    resetGameState();
+  };
 
   const handleTypingProgress = (progress, currentInput, wpm) => {
     if (raceState !== 'racing' && raceState !== 'finished') return;
@@ -224,82 +404,8 @@ function App() {
     }
   };
 
-  // Handler for the Start Race button
-  const handleStartRace = () => {
-    const raceText = customText.trim() || quotes[Math.floor(Math.random() * quotes.length)] || fallbackQuotes[0];
-    console.log('Starting race with text:', raceText);
-    
-    // Create unique room and join it
-    const singlePlayerRoom = `single-player-${Date.now()}`;
-    console.log('Creating room:', singlePlayerRoom);
-    
-    // Initialize race state before joining room
-    setRaceState('waiting');
-    setMyProgress(0);
-    setTypedText('');
-    setMyWpm(0);
-    setTextToType(raceText);
-    
-    // Set initial racer state
-    setRacers([{
-      id: socket.id,
-      name: 'You',
-      progress: 0,
-      wpm: 0
-    }]);
-
-    // Join room and handle race start
-    socket.emit('joinRoom', singlePlayerRoom);
-    setCurrentRoom(singlePlayerRoom);
-
-    // Listen for room joined event
-    socket.once('roomJoined', () => {
-      console.log('Room joined, submitting text:', raceText);
-      // Submit text and emit ready state
-      socket.emit('submit_custom_text', raceText);
-      // Mark player as ready after a short delay to ensure text is received
-      setTimeout(() => {
-        console.log('Marking player as ready');
-        socket.emit('ready');
-      }, 500);
-    });
-  };
-
   const handleQuoteSelect = (quote) => {
     setCustomText(quote);
-  };
-
-  const handleReady = () => {
-    console.log('Player ready');
-    if (!currentRoom) {
-      const roomId = 'default-room';
-      console.log('Joining default room:', roomId);
-      socket.emit('joinRoom', roomId);
-      setCurrentRoom(roomId);
-    }
-    socket.emit('ready');
-  };
-
-  const startMultiplayerMode = () => {
-    setIsMultiplayer(true);
-    setRaceState('waiting');
-    setMyProgress(0);
-    setTypedText('');
-    setMyWpm(0);
-    setTextToType('');
-    const roomId = 'default-room';
-    socket.emit('joinRoom', roomId);
-    setCurrentRoom(roomId);
-  };
-
-  const backToSinglePlayer = () => {
-    setIsMultiplayer(false);
-    setRaceState('waiting');
-    setMyProgress(0);
-    setTypedText('');
-    setMyWpm(0);
-    setTextToType('');
-    setCurrentRoom(null);
   };
 
   return (
@@ -308,11 +414,19 @@ function App() {
         <h1>
           SpeedType Racing
           <span className="version">v{APP_VERSION}</span>
+          <span className={`env-indicator ${import.meta.env.MODE}`}>
+            {import.meta.env.MODE}
+          </span>
         </h1>
       </header>
       <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
         {isConnected ? 'Connected' : 'Disconnected'}
       </div>
+      {connectionError && (
+        <div className="error-message">
+          {connectionError}
+        </div>
+      )}
       <div className="race-container">
         {!isMultiplayer && raceState === 'waiting' && countdown === 0 && (
           <div className="race-setup">

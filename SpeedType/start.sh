@@ -8,7 +8,7 @@ ENV=${1:-development}
 
 # Kill any existing Node.js processes
 echo "Killing existing Node.js processes..."
-pkill -f "node"
+pkill -f "node" || true
 
 # Wait a moment to ensure ports are freed
 sleep 2
@@ -17,14 +17,22 @@ echo "Starting services in $ENV environment..."
 
 # Start backend server
 echo "Starting backend server on port 3001..."
-cd "$BASE_DIR/backend" && npm run dev:$ENV &
+if [ "$ENV" = "production" ]; then
+    cd "$BASE_DIR/backend" && npm run dev:prod &
+else
+    cd "$BASE_DIR/backend" && npm run dev &
+fi
 
 # Wait for backend to start
 sleep 5
 
 # Start frontend server
 echo "Starting frontend server on port 3000..."
-cd "$BASE_DIR/frontend" && npm run dev:$ENV &
+if [ "$ENV" = "production" ]; then
+    cd "$BASE_DIR/frontend" && npm run dev:prod &
+else
+    cd "$BASE_DIR/frontend" && npm run dev &
+fi
 
 # Wait for both servers to be ready
 echo "Waiting for servers to start..."

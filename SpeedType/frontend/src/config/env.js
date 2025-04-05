@@ -25,7 +25,16 @@ const ENV = {
       withCredentials: true,
       extraHeaders: {
         'X-Client-Version': '1.0.1'
-      }
+      },
+      transportOptions: {
+        polling: {
+          extraHeaders: {
+            'X-Client-Version': '1.0.1'
+          }
+        }
+      },
+      reconnectionDelayMax: 10000,
+      randomizationFactor: 0.5
     }
   },
   production: {
@@ -48,7 +57,16 @@ const ENV = {
       withCredentials: true,
       extraHeaders: {
         'X-Client-Version': '1.0.1'
-      }
+      },
+      transportOptions: {
+        polling: {
+          extraHeaders: {
+            'X-Client-Version': '1.0.1'
+          }
+        }
+      },
+      reconnectionDelayMax: 10000,
+      randomizationFactor: 0.5
     }
   },
   // You can add more environments here (staging, testing, etc.)

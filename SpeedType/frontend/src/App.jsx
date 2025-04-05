@@ -6,11 +6,46 @@ import TypingArea from './components/TypingArea'
 import { APP_VERSION } from './config/version'
 import { config } from './config/env'
 
-// Create socket with configuration from env
-const socket = io(config.BACKEND_URL, {
-  ...config.SOCKET_CONFIG,
-  timeout: config.SOCKET_TIMEOUT
+// Debug logging for Socket.IO configuration
+console.log('Socket.IO Configuration:', {
+  backendUrl: config.BACKEND_URL,
+  socketConfig: config.SOCKET_CONFIG,
+  timeout: config.SOCKET_TIMEOUT,
+  environment: import.meta.env.MODE
 });
+
+// Create socket with configuration from env
+let socket;
+try {
+  socket = io(config.BACKEND_URL, {
+    ...config.SOCKET_CONFIG,
+    timeout: config.SOCKET_TIMEOUT,
+    autoConnect: false // Prevent auto-connection before we're ready
+  });
+
+  // Debug socket events
+  socket.on('connect_error', (error) => {
+    console.error('Socket.IO Connect Error:', error);
+  });
+
+  socket.on('error', (error) => {
+    console.error('Socket.IO Error:', error);
+  });
+
+  socket.io.on('error', (error) => {
+    console.error('Socket.IO Manager Error:', error);
+  });
+
+  socket.io.on('reconnect_attempt', (attempt) => {
+    console.log('Socket.IO Reconnection Attempt:', attempt);
+  });
+
+  // Start the connection
+  socket.connect();
+} catch (error) {
+  console.error('Socket.IO Initialization Error:', error);
+  socket = null;
+}
 
 // Utility function for handling promises with timeout
 const withTimeout = (promise, ms = config.SOCKET_TIMEOUT) => {

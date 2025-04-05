@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react';
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   // Load env file based on `mode` in the current working directory.
+  // Using '' as prefix to load all env variables, not just VITE_*
   const env = loadEnv(mode, process.cwd(), '');
   
   return {
@@ -46,10 +47,7 @@ export default defineConfig(({ command, mode }) => {
         }
       }
     },
-    envPrefix: 'VITE_',
-    define: {
-      // Expose env variables to the client
-      'process.env': {}
-    }
+    envDir: '.',
+    envPrefix: 'VITE_'
   };
 }); 

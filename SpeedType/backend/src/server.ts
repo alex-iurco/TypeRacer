@@ -20,46 +20,42 @@ const getAllowedOrigins = () => {
   return origins.split(',').map(origin => origin.trim());
 };
 
-export const createApp = () => {
-  const app = express();
-
-  // Use allowed origins from environment
-  app.use(cors({
-    origin: getAllowedOrigins(),
-    credentials: true
-  }));
-
-  app.use(express.json());
-
-  // Health check route
-  app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
-  });
-
-  // Quotes route
-  app.get('/api/quotes', (req, res) => {
-    const quotes = [
-      "The quick brown fox jumps over the lazy dog.",
-      "To be or not to be, that is the question.",
-      "All that glitters is not gold.",
-      "A journey of a thousand miles begins with a single step.",
-      "Actions speak louder than words.",
-      "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-      "The future depends on what you do today.",
-      "Life is like riding a bicycle. To keep your balance, you must keep moving.",
-      "The only limit to our realization of tomorrow will be our doubts of today.",
-      "It does not matter how slowly you go as long as you do not stop."
-    ];
-    // Shuffle and return 5 random quotes
-    const shuffledQuotes = quotes.sort(() => Math.random() - 0.5).slice(0, 5);
-    res.json(shuffledQuotes);
-  });
-
-  return app;
-};
-
 // Create and configure the app
-const app = createApp();
+const app = express();
+
+// Use allowed origins from environment
+app.use(cors({
+  origin: getAllowedOrigins(),
+  credentials: true
+}));
+
+app.use(express.json());
+
+// Health check route
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Quotes route
+app.get('/api/quotes', (req, res) => {
+  const quotes = [
+    "The quick brown fox jumps over the lazy dog.",
+    "To be or not to be, that is the question.",
+    "All that glitters is not gold.",
+    "A journey of a thousand miles begins with a single step.",
+    "Actions speak louder than words.",
+    "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    "The future depends on what you do today.",
+    "Life is like riding a bicycle. To keep your balance, you must keep moving.",
+    "The only limit to our realization of tomorrow will be our doubts of today.",
+    "It does not matter how slowly you go as long as you do not stop."
+  ];
+  // Shuffle and return 5 random quotes
+  const shuffledQuotes = quotes.sort(() => Math.random() - 0.5).slice(0, 5);
+  res.json(shuffledQuotes);
+});
+
+// Create HTTP server and Socket.IO instance
 const httpServer = createHttpServer(app);
 const io = new Server(httpServer, {
   cors: {

@@ -58,22 +58,26 @@ export const createApp = () => {
   return app;
 };
 
+// Create and configure the app
+const app = createApp();
+const httpServer = createHttpServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: getAllowedOrigins(),
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+setupRaceSocket(io);
+
+// Start the server if this is the main module
 if (require.main === module) {
-  const app = createApp();
-  const httpServer = createHttpServer(app);
-  const io = new Server(httpServer, {
-    cors: {
-      origin: getAllowedOrigins(),
-      methods: ['GET', 'POST'],
-      credentials: true
-    }
-  });
-
-  setupRaceSocket(io);
-
   httpServer.listen(PORT, () => {
     console.log(`Server listening on *:${PORT}`);
   });
 }
 
-export default createApp; 
+// Export for testing and deployment
+export { httpServer };
+export default app; 

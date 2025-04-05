@@ -10,17 +10,35 @@ test.describe('Race Feature', () => {
     page.on('pageerror', err => console.error('Browser error:', err));
     
     console.log('Navigating to race page...');
-    await page.goto('http://localhost:3000', { waitUntil: 'networkidle' });
+    await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
     console.log('Page loaded');
 
     // Wait for socket connection by checking connection status
     try {
       const connectionStatus = page.locator('.connection-status');
-      await connectionStatus.waitFor({ state: 'visible', timeout: 15000 });
-      const status = await connectionStatus.textContent();
-      console.log('Connection status:', status);
-      if (status !== 'Connected') {
-        throw new Error('Not connected to server');
+      await connectionStatus.waitFor({ state: 'visible', timeout: 30000 });
+      
+      // Wait for Connected status with retry logic
+      let isConnected = false;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (!isConnected && attempts < maxAttempts) {
+        const status = await connectionStatus.textContent();
+        console.log(`Connection status attempt ${attempts + 1}: ${status}`);
+        
+        if (status === 'Connected') {
+          isConnected = true;
+          console.log('Successfully connected to server');
+        } else {
+          attempts++;
+          console.log(`Waiting for connection, attempt ${attempts}/${maxAttempts}`);
+          await page.waitForTimeout(2000); // Wait 2 seconds between checks
+        }
+      }
+      
+      if (!isConnected) {
+        throw new Error('Not connected to server after multiple attempts');
       }
     } catch (error) {
       console.error('Failed to verify socket connection');

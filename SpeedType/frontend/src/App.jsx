@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import io from 'socket.io-client'
 import './App.css'
 import RaceTrack from './components/RaceTrack'
@@ -26,7 +26,11 @@ try {
     withCredentials: true,
     extraHeaders: {
       'X-Client-Version': '1.0.1'
-    }
+    },
+    reconnectionAttempts: 3,
+    reconnectionDelay: 2000,
+    reconnectionDelayMax: 5000,
+    randomizationFactor: 0.3
   };
 
   socket = io(config.BACKEND_URL, socketConfig);
@@ -36,7 +40,8 @@ try {
     console.error('Socket.IO Connect Error:', {
       message: error.message,
       type: error.type,
-      transport: socket.io.engine?.transport?.name
+      transport: socket.io.engine?.transport?.name,
+      url: config.BACKEND_URL
     });
   });
 
@@ -46,6 +51,8 @@ try {
 
   socket.io.on('reconnect_attempt', (attempt) => {
     console.log('Socket.IO Reconnection Attempt:', attempt);
+    // Reset game state on reconnection attempts
+    resetGameState();
   });
 
   // After successful polling connection, enable WebSocket upgrade
@@ -127,6 +134,8 @@ function App() {
   const [currentRoom, setCurrentRoom] = useState(null)
   const [isMultiplayer, setIsMultiplayer] = useState(false)
   const [isJoiningRoom, setIsJoiningRoom] = useState(false)
+  const lastProgressRef = useRef(0);
+  const lastWpmRef = useRef(0);
 
   // Reset game state
   const resetGameState = useCallback(() => {
@@ -211,8 +220,15 @@ function App() {
         setConnectionError(`Room error: ${state.error}`);
         return;
       }
-      if (raceState !== 'finished') {
-        setRaceState(state.status);
+      
+      // Only update race state if it's a valid transition
+      if (state.status === 'waiting' && raceState !== 'waiting') {
+        setRaceState('waiting');
+        setCountdown(0);
+      } else if (state.status === 'racing' && raceState === 'waiting') {
+        setRaceState('racing');
+      } else if (state.status === 'finished' && raceState === 'racing') {
+        setRaceState('finished');
       }
     }
 
@@ -237,6 +253,13 @@ function App() {
 
     function onCountdown(value) {
       console.log('Countdown:', value);
+      
+      // Prevent countdown updates if we're in an invalid state
+      if (!isConnected || !textToType) {
+        console.log('Ignoring countdown update due to invalid state');
+        return;
+      }
+
       setCountdown(value);
       
       if (value === 3) {
@@ -248,11 +271,6 @@ function App() {
       
       if (value === 0) {
         console.log('Race beginning with text:', textToType);
-        if (!textToType) {
-          setConnectionError('No text received for race');
-          resetGameState();
-          return;
-        }
         setRaceState('racing');
       }
     }
@@ -316,15 +334,8 @@ function App() {
       setMyProgress(0);
       setTypedText('');
       setMyWpm(0);
-      setTextToType(raceText);
+      setCountdown(0);
       
-      setRacers([{
-        id: socket.id,
-        name: 'You',
-        progress: 0,
-        wpm: 0
-      }]);
-
       // Join room with timeout
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -336,10 +347,31 @@ function App() {
 
         socket.once('roomJoined', () => {
           clearTimeout(timeout);
-          socket.emit('submit_custom_text', raceText);
+          // Set text and racers after room join
+          setTextToType(raceText);
+          setRacers([{
+            id: socket.id,
+            name: 'You',
+            progress: 0,
+            wpm: 0
+          }]);
+          
+          // Submit text and emit ready after a short delay
           setTimeout(() => {
-            socket.emit('ready');
-            resolve();
+            if (!socket.connected) {
+              reject(new Error('Socket disconnected'));
+              return;
+            }
+            socket.emit('submit_custom_text', raceText);
+            // Wait for text to be processed before sending ready
+            setTimeout(() => {
+              if (!socket.connected) {
+                reject(new Error('Socket disconnected'));
+                return;
+              }
+              socket.emit('ready');
+              resolve();
+            }, 500);
           }, config.RETRY_DELAY);
         });
       });
@@ -446,9 +478,18 @@ function App() {
       return [...otherRacers, me];
     });
     
-    // Send updates to server
-    socket.emit('progress_update', { progress });
-    socket.emit('wpm_update', { wpm });
+    // Debounce socket updates to prevent flooding
+    // Send progress update immediately if it's a significant change
+    if (Math.abs(progress - lastProgressRef.current) >= 5 || progress === 100) {
+      lastProgressRef.current = progress;
+      socket.emit('progress_update', { progress });
+    }
+    
+    // Send WPM update only on significant changes
+    if (Math.abs(wpm - lastWpmRef.current) >= 5) {
+      lastWpmRef.current = wpm;
+      socket.emit('wpm_update', { wpm });
+    }
 
     // Check if race is complete
     if (progress >= 100) {

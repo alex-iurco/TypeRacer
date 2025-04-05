@@ -71,12 +71,32 @@ io.on('connection', (socket) => {
     // Reset progress for all connected racers
     for (const id in racers) {
       racers[id].progress = 0;
+      racers[id].finished = false;
     }
     console.log('Resetting progress for all racers.');
 
     // Broadcast the new text and the reset racer state to everyone
     io.emit('race_text', currentRaceText);
     io.emit('race_update', Object.values(racers));
+  });
+
+  // Handle ready state and start countdown
+  socket.on('ready', () => {
+    console.log(`Player ${socket.id} is ready to start`);
+    
+    // Start countdown from 3
+    let count = 3;
+    io.emit('countdown', count);
+    
+    const countdownInterval = setInterval(() => {
+      count--;
+      io.emit('countdown', count);
+      
+      if (count === 0) {
+        clearInterval(countdownInterval);
+        io.emit('room_state', { status: 'racing' });
+      }
+    }, 1000);
   });
 
   // Handle progress update

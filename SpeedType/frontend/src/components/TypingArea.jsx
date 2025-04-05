@@ -12,6 +12,8 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
   const inputRef = useRef(null);
   const lastProgressRef = useRef(0);
   const textRef = useRef(textToType);
+  const lastWpmUpdateRef = useRef(null);
+  const lastUpdateTimeRef = useRef(null);
 
   // Split text into words
   const words = textToType.split(' ');
@@ -43,6 +45,7 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
     console.log('Race started:', isStarted);
     if (isStarted && !startTime) {
       setStartTime(Date.now());
+      lastUpdateTimeRef.current = Date.now();
       if (inputRef.current) {
         inputRef.current.focus();
       }
@@ -64,23 +67,47 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
       
       // Count completed words including the current word if it's complete
       let completedWords = currentWordIndex;
-      if (input === currentWord) {
-        completedWords++;
+      
+      // Add partial progress on current word
+      if (input.length > 0) {
+        let correctChars = 0;
+        for (let i = 0; i < input.length && i < currentWord.length; i++) {
+          if (input[i] === currentWord[i]) {
+            correctChars++;
+          } else {
+            break;
+          }
+        }
+        const wordProgress = correctChars / currentWord.length;
+        completedWords += wordProgress;
       }
       
-      return Math.round(completedWords / timeElapsed);
+      // Standard WPM calculation (5 characters = 1 word)
+      const standardWordLength = 5;
+      const totalChars = words.slice(0, currentWordIndex).join('').length + 
+                        (input.length > 0 ? input.length : 0);
+      const standardWords = totalChars / standardWordLength;
+      
+      return Math.round(standardWords / timeElapsed);
     };
 
     const interval = setInterval(() => {
       if (isCompleted) {
-        // Clear interval if race becomes completed
         clearInterval(interval);
         return;
       }
       const currentWPM = calculateWPM();
       setWpm(currentWPM);
-      onProgress(lastProgressRef.current, input, currentWPM);
-    }, 1000); // Update every second
+      
+      // Only send periodic updates if there's a significant change or every 2 seconds
+      if (!lastWpmUpdateRef.current || 
+          Math.abs(currentWPM - lastWpmUpdateRef.current) > 5 || 
+          Date.now() - lastUpdateTimeRef.current > 2000) {
+        lastWpmUpdateRef.current = currentWPM;
+        lastUpdateTimeRef.current = Date.now();
+        onProgress(lastProgressRef.current, input, currentWPM);
+      }
+    }, 1000); // Update every second instead of half-second
 
     // Calculate initial WPM
     const initialWPM = calculateWPM();
@@ -94,9 +121,13 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
     if (!textToType) return 0;
     if (isCompleted) return 100;
 
-    // Calculate total characters in completed words
+    // Calculate total characters in completed words including spaces
     const completedWords = words.slice(0, currentWordIndex);
     let totalCorrectChars = completedWords.join(' ').length;
+    if (currentWordIndex > 0) {
+      // Add space for each completed word except the last one
+      totalCorrectChars += 1;
+    }
     
     // Add correct characters from current word
     if (newInput) {
@@ -109,7 +140,7 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
       }
     }
 
-    // Calculate progress percentage
+    // Calculate progress percentage based on total characters including spaces
     const totalChars = textToType.length;
     const progress = Math.min(100, Math.round((totalCorrectChars / totalChars) * 100));
     return progress;
@@ -126,9 +157,10 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
       setIsError(false);
       const newProgress = calculateProgress(newInput);
       setProgress(newProgress);
-      lastProgressRef.current = newProgress;
-      // Only emit progress update on actual progress change
-      if (newProgress !== progress) {
+      
+      // Only emit progress update on significant progress change (at least 1%)
+      if (Math.abs(newProgress - lastProgressRef.current) >= 1) {
+        lastProgressRef.current = newProgress;
         onProgress(newProgress, newInput, wpm);
       }
 
@@ -171,15 +203,10 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
         const completedText = words.slice(0, currentWordIndex + 1).join(' ');
         const newProgress = calculateProgress(completedText);
         
-        // Ensure progress never decreases
-        if (newProgress > lastProgressRef.current) {
-          setProgress(newProgress);
-          lastProgressRef.current = newProgress;
-          onProgress(newProgress, '', wpm);
-        } else {
-          // If progress would decrease, keep the previous progress
-          onProgress(lastProgressRef.current, '', wpm);
-        }
+        // Always update progress on word completion
+        setProgress(newProgress);
+        lastProgressRef.current = newProgress;
+        onProgress(newProgress, '', wpm);
       }
     }
   };

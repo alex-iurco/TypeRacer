@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import './RaceTrack.css';
 import CarIcon from './CarIcon';
 
 function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
+  // Create refs to store the maximum progress value for each racer
+  const maxProgressRefs = useRef({});
+  
   // Assign distinct colors to racers (simple approach)
   const colors = ['#4169e1', '#dc143c', '#8b0000', '#4682b4', '#32cd32', '#ffd700'];
   const getRacerColor = (index) => colors[index % colors.length];
@@ -19,6 +22,27 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
 
   // Ensure we always have at least one racer (the player) in single-player mode
   const displayRacers = racers.length > 0 ? racers : [{ id: 'player', name: 'You', progress: 0, wpm: 0 }];
+  
+  // Update maxProgress values for each racer
+  useEffect(() => {
+    displayRacers.forEach(racer => {
+      // Initialize if not exists
+      if (!maxProgressRefs.current[racer.id]) {
+        maxProgressRefs.current[racer.id] = 0;
+      }
+      
+      // Update only if new progress is greater than current max
+      if (racer.progress > maxProgressRefs.current[racer.id]) {
+        maxProgressRefs.current[racer.id] = racer.progress;
+      }
+    });
+  }, [displayRacers]);
+
+  // Get the safe progress value that never goes backward
+  const getSafeProgress = (racer) => {
+    const maxProgress = maxProgressRefs.current[racer.id] || 0;
+    return Math.max(racer.progress || 0, maxProgress);
+  };
 
   return (
     <div className="race-track-container">
@@ -39,33 +63,49 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
         )}
       </div>
       <div className="race-track" data-testid="race-player-list" data-race-state={raceState}>
-        {displayRacers.map((racer, index) => (
-          <div key={racer.id} className="car-lane" data-testid="race-player-slot">
-            <div className="lane-info">
-              <span className="racer-name">{racer.name || `Player ${index + 1}`}</span>
-              <span className="racer-stats">
-                <span className="wpm-display">{racer.wpm || 0} WPM</span>
-                <span className="progress-display">{Math.round(racer.progress || 0)}%</span>
-                {racer.progress >= 100 && (
-                  <span className="place-display">{getPlace(racer)}</span>
-                )}
-              </span>
-            </div>
-            <div className="lane-divider"></div>
-            <div className="race-progress">
-              <div
-                className="car-container"
-                style={{
-                  left: `${racer.progress || 0}%`,
-                  transition: 'left 0.2s ease-out'
-                }}
-              >
-                <CarIcon color={getRacerColor(index)} />
+        {displayRacers.map((racer, index) => {
+          // Use the safe progress that never decreases
+          const safeProgress = getSafeProgress(racer);
+          
+          return (
+            <div key={racer.id} className="car-lane" data-testid="race-player-slot">
+              <div className="lane-info">
+                <div className="racer-info">
+                  <span className="racer-name">{racer.name || `Player ${index + 1}`}</span>
+                  <span className="racer-stats">
+                    <span className="wpm-display">{racer.wpm || 0} WPM</span>
+                    <span className="progress-display">{Math.round(racer.progress || 0)}%</span>
+                    {racer.progress >= 100 && (
+                      <span className="place-display">{getPlace(racer)}</span>
+                    )}
+                  </span>
+                </div>
               </div>
-              <div className="finish-line"></div>
+              <div className="race-progress">
+                <div
+                  className="progress-bar"
+                  style={{
+                    width: `${safeProgress}%`,
+                    backgroundColor: getRacerColor(index),
+                    transition: 'width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)'
+                  }}
+                />
+                <div
+                  className="car-container"
+                  style={{
+                    position: 'absolute',
+                    left: `${safeProgress}%`,
+                    top: '-20px',
+                    transform: 'translateX(-50%)',
+                    transition: 'left 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)'
+                  }}
+                >
+                  <CarIcon color={getRacerColor(index)} />
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

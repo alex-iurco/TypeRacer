@@ -45,7 +45,7 @@ jobs:
           EOF
 
       - name: Deploy to Railway
-        uses: railwayapp/railway-deploy@v2.1.1
+        uses: railwayapp/railway-deploy@v1.1.1
         with:
           railway_token: ${{ secrets.RAILWAY_TOKEN }}
           service: "speedtype-backend"

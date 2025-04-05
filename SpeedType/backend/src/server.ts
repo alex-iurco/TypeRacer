@@ -37,16 +37,26 @@ const corsOptions = {
     console.log('Checking CORS for origin:', origin);
     console.log('Allowed origins:', allowedOrigins);
     
-    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      console.log('CORS: Origin allowed');
+    // In development or if no origin is set, allow all origins
+    if (process.env.NODE_ENV !== 'production' || !origin) {
+      console.log('CORS: Development mode or no origin, allowing access');
+      callback(null, true);
+      return;
+    }
+    
+    // Check if origin is allowed
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      console.log('CORS: Origin allowed:', origin);
       callback(null, true);
     } else {
-      console.log('CORS: Origin rejected');
+      console.log('CORS: Origin rejected:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: process.env.CORS_METHODS?.split(',').map(method => method.trim()) || ['GET', 'POST', 'OPTIONS']
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range']
 };
 
 app.use(cors(corsOptions));
@@ -121,7 +131,26 @@ app.use((req, res) => {
 // Create HTTP server and Socket.IO instance
 const httpServer = createHttpServer(app);
 const io = new Server(httpServer, {
-  cors: corsOptions
+  cors: corsOptions,
+  transports: ['websocket', 'polling'],
+  allowUpgrades: true,
+  pingTimeout: 30000,
+  pingInterval: 25000,
+  cookie: false
+});
+
+// Debug Socket.IO events
+io.engine.on("connection_error", (err) => {
+  console.log("Socket.IO connection error:", err);
+});
+
+io.engine.on("headers", (headers, req) => {
+  console.log("Socket.IO headers:", headers);
+  console.log("Socket.IO request:", {
+    method: req.method,
+    url: req.url,
+    headers: req.headers
+  });
 });
 
 setupRaceSocket(io);

@@ -10,12 +10,12 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3001;
 
-// Get allowed origins from environment
+// Get allowed origins from environment with more permissive defaults
 const getAllowedOrigins = () => {
   const origins = process.env.ALLOWED_ORIGINS;
   if (!origins) {
-    console.warn('No ALLOWED_ORIGINS specified, defaulting to localhost:3000');
-    return ['http://localhost:3000'];
+    console.warn('No ALLOWED_ORIGINS specified, allowing all origins in development');
+    return ['http://localhost:3000', 'https://speedtype.robocat.ai', '*'];
   }
   return origins.split(',').map(origin => origin.trim());
 };
@@ -30,12 +30,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use allowed origins from environment
-app.use(cors({
-  origin: getAllowedOrigins(),
-  credentials: true
-}));
+// Use allowed origins from environment with more detailed logging
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    const allowedOrigins = getAllowedOrigins();
+    console.log('Checking CORS for origin:', origin);
+    console.log('Allowed origins:', allowedOrigins);
+    
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      console.log('CORS: Origin allowed');
+      callback(null, true);
+    } else {
+      console.log('CORS: Origin rejected');
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: process.env.CORS_METHODS?.split(',').map(method => method.trim()) || ['GET', 'POST', 'OPTIONS']
+};
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Create router for all API routes
@@ -48,14 +62,20 @@ router.get('/', (req, res) => {
     status: 'healthy',
     message: 'SpeedType Backend is running!',
     version: '1.0.1',
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    allowedOrigins: getAllowedOrigins(),
+    corsMethods: corsOptions.methods
   });
 });
 
 // Health check route
 router.get('/health', (req, res) => {
   console.log('Health check endpoint called');
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Quotes route
@@ -91,18 +111,17 @@ app.use((req, res) => {
     error: 'Not Found',
     path: req.path,
     method: req.method,
-    message: 'The requested resource was not found on this server'
+    message: 'The requested resource was not found on this server',
+    availableRoutes: app._router.stack
+      .filter((r: any) => r.route && r.route.path)
+      .map((r: any) => `${Object.keys(r.route.methods).join(',')} ${r.route.path}`)
   });
 });
 
 // Create HTTP server and Socket.IO instance
 const httpServer = createHttpServer(app);
 const io = new Server(httpServer, {
-  cors: {
-    origin: getAllowedOrigins(),
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
+  cors: corsOptions
 });
 
 setupRaceSocket(io);
@@ -120,6 +139,7 @@ if (require.main === module) {
   httpServer.listen(PORT, () => {
     console.log(`Server listening on *:${PORT}`);
     console.log('Allowed origins:', getAllowedOrigins());
+    console.log('CORS methods:', corsOptions.methods);
     console.log('Environment:', process.env.NODE_ENV);
   });
 }

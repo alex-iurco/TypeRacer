@@ -20,9 +20,6 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
       - name: Install Dependencies
         working-directory: SpeedType/backend
         run: npm install
@@ -35,9 +32,7 @@ jobs:
           echo "Verifying build output..."
           ls -la dist/
 
-      - name: Deploy to Railway
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Create env file
         working-directory: SpeedType/backend
         run: |
           echo "Creating environment variables file..."
@@ -48,18 +43,19 @@ jobs:
           CORS_METHODS=GET,POST,OPTIONS
           CORS_CREDENTIALS=true
           EOF
-          
-          echo "Logging in to Railway..."
-          echo "$RAILWAY_TOKEN" | railway login
-          
-          echo "Starting Railway deployment..."
-          railway up
-          
+
+      - name: Deploy to Railway
+        uses: railwayapp/railway-deploy@v2.1.0
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: "speedtype-backend"
+          root_dir: "SpeedType/backend"
+
+      - name: Verify Deployment
+        run: |
           echo "Deployment initiated, waiting for service to be ready..."
           sleep 30
           
-      - name: Verify Deployment
-        run: |
           echo "Verifying deployment..."
           for i in {1..3}; do
             echo "Attempt $i to verify deployment..."

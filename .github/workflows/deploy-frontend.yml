@@ -10,15 +10,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    env:
-      VITE_NODE_ENV: production
-      VITE_BACKEND_URL: https://speedtype-backend-production.up.railway.app
-      VITE_SOCKET_TIMEOUT: 5000
-      VITE_RETRY_DELAY: 1000
-      VITE_RECONNECTION_ATTEMPTS: 5
-      VITE_SOCKET_TRANSPORTS: '["websocket","polling"]'
-      VITE_SOCKET_AUTO_CONNECT: true
-      VITE_SOCKET_RECONNECTION: true
+    
     steps:
       - uses: actions/checkout@v2
 
@@ -31,19 +23,6 @@ jobs:
         run: |
           cd SpeedType/frontend
           npm install
-
-      - name: Create env file
-        run: |
-          cd SpeedType/frontend
-          echo "VITE_NODE_ENV=$VITE_NODE_ENV" > .env.production
-          echo "VITE_BACKEND_URL=$VITE_BACKEND_URL" >> .env.production
-          echo "VITE_SOCKET_TIMEOUT=$VITE_SOCKET_TIMEOUT" >> .env.production
-          echo "VITE_RETRY_DELAY=$VITE_RETRY_DELAY" >> .env.production
-          echo "VITE_RECONNECTION_ATTEMPTS=$VITE_RECONNECTION_ATTEMPTS" >> .env.production
-          echo "VITE_SOCKET_TRANSPORTS=$VITE_SOCKET_TRANSPORTS" >> .env.production
-          echo "VITE_SOCKET_AUTO_CONNECT=$VITE_SOCKET_AUTO_CONNECT" >> .env.production
-          echo "VITE_SOCKET_RECONNECTION=$VITE_SOCKET_RECONNECTION" >> .env.production
-          cat .env.production
 
       - name: Build
         env:

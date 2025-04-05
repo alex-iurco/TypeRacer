@@ -40,21 +40,15 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         working-directory: SpeedType/backend
         run: |
-          echo "Authenticating with Railway..."
-          railway login --browserless
-          
-          echo "Linking to Railway project..."
-          railway link --project speedtype
-          
           echo "Setting environment variables..."
-          railway variables set NODE_ENV=production
-          railway variables set PORT=3001
-          railway variables set ALLOWED_ORIGINS="https://speedtype.robocat.ai,http://localhost:3000"
-          railway variables set CORS_METHODS="GET,POST,OPTIONS"
-          railway variables set CORS_CREDENTIALS="true"
+          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway variables set NODE_ENV=production
+          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway variables set PORT=3001
+          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway variables set ALLOWED_ORIGINS="https://speedtype.robocat.ai,http://localhost:3000"
+          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway variables set CORS_METHODS="GET,POST,OPTIONS"
+          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway variables set CORS_CREDENTIALS="true"
           
           echo "Starting Railway deployment..."
-          railway up
+          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway up --service speedtype-backend
           
           echo "Deployment initiated, waiting for service to be ready..."
           sleep 30

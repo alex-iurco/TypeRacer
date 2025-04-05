@@ -46,16 +46,10 @@ export default defineConfig(({ command, mode }) => {
         }
       }
     },
+    envPrefix: 'VITE_',
     define: {
-      // Expose env variables to the client with the same names they're using
-      'import.meta.env.VITE_NODE_ENV': JSON.stringify(env.VITE_NODE_ENV),
-      'import.meta.env.VITE_BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL),
-      'import.meta.env.VITE_SOCKET_TIMEOUT': env.VITE_SOCKET_TIMEOUT,
-      'import.meta.env.VITE_RETRY_DELAY': env.VITE_RETRY_DELAY,
-      'import.meta.env.VITE_RECONNECTION_ATTEMPTS': env.VITE_RECONNECTION_ATTEMPTS,
-      'import.meta.env.VITE_SOCKET_TRANSPORTS': JSON.stringify(env.VITE_SOCKET_TRANSPORTS),
-      'import.meta.env.VITE_SOCKET_AUTO_CONNECT': env.VITE_SOCKET_AUTO_CONNECT === 'true',
-      'import.meta.env.VITE_SOCKET_RECONNECTION': env.VITE_SOCKET_RECONNECTION === 'true'
+      // Expose env variables to the client
+      'process.env': {}
     }
   };
 }); 

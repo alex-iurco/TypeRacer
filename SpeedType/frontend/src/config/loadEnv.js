@@ -25,8 +25,13 @@ export const initializeEnv = () => {
     'VITE_SOCKET_RECONNECTION'
   ];
 
-  const missing = requiredVars.filter(key => !import.meta.env[key]);
+  const missing = requiredVars.filter(key => {
+    const value = import.meta.env[key];
+    return value === undefined || value === null || value === '';
+  });
+
   if (missing.length > 0) {
+    console.error('Environment variables:', import.meta.env);
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 

@@ -20,6 +20,9 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
       - name: Install Dependencies
         working-directory: SpeedType/backend
         run: npm install
@@ -45,11 +48,14 @@ jobs:
           EOF
 
       - name: Deploy to Railway
-        uses: railwayapp/railway-deploy@v1.1.1
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: "speedtype-backend"
-          root_dir: "SpeedType/backend"
+        working-directory: SpeedType/backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Authenticating with Railway..."
+          railway login --token "$RAILWAY_TOKEN"
+          echo "Starting deployment..."
+          railway up
 
       - name: Verify Deployment
         run: |

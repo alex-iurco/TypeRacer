@@ -43,21 +43,27 @@ jobs:
         working-directory: SpeedType/backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          NODE_ENV: production
-          PORT: 3001
-          ALLOWED_ORIGINS: "https://speedtype.robocat.ai,http://localhost:3000"
-          CORS_METHODS: "GET,POST,OPTIONS"
-          CORS_CREDENTIALS: "true"
         run: |
           echo "Installing Railway CLI..."
           npm install -g @railway/cli
           
           echo "Setting up Railway environment variables..."
-          railway variables set NODE_ENV=production
-          railway variables set PORT=3001
-          railway variables set ALLOWED_ORIGINS="https://speedtype.robocat.ai,http://localhost:3000"
-          railway variables set CORS_METHODS="GET,POST,OPTIONS"
-          railway variables set CORS_CREDENTIALS="true"
+          # Create a temporary JSON file with all variables
+          cat > railway-vars.json << EOF
+          {
+            "NODE_ENV": "production",
+            "PORT": "3001",
+            "ALLOWED_ORIGINS": "https://speedtype.robocat.ai,http://localhost:3000",
+            "CORS_METHODS": "GET,POST,OPTIONS",
+            "CORS_CREDENTIALS": "true"
+          }
+          EOF
+          
+          # Use railway link to connect to the project
+          railway link --project speedtype
+          
+          # Import variables from the JSON file
+          railway variables import railway-vars.json
           
           echo "Starting Railway deployment..."
           railway up --service speedtype-backend || exit 1

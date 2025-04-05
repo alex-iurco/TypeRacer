@@ -5,6 +5,8 @@ import CarIcon from './CarIcon';
 function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
   // Create refs to store the maximum progress value for each racer
   const maxProgressRefs = useRef({});
+  // Create refs to store the maximum WPM values for each racer
+  const maxWpmRefs = useRef({});
   
   // Assign distinct colors to racers (simple approach)
   const colors = ['#4169e1', '#dc143c', '#8b0000', '#4682b4', '#32cd32', '#ffd700'];
@@ -23,7 +25,7 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
   // Ensure we always have at least one racer (the player) in single-player mode
   const displayRacers = racers.length > 0 ? racers : [{ id: 'player', name: 'You', progress: 0, wpm: 0 }];
   
-  // Update maxProgress values for each racer
+  // Update maxProgress and maxWPM values for each racer
   useEffect(() => {
     displayRacers.forEach(racer => {
       // Initialize if not exists
@@ -31,9 +33,19 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
         maxProgressRefs.current[racer.id] = 0;
       }
       
+      // Initialize max WPM if not exists
+      if (!maxWpmRefs.current[racer.id]) {
+        maxWpmRefs.current[racer.id] = 0;
+      }
+      
       // Update only if new progress is greater than current max
       if (racer.progress > maxProgressRefs.current[racer.id]) {
         maxProgressRefs.current[racer.id] = racer.progress;
+      }
+      
+      // Update max WPM if new value is greater than zero and greater than current max
+      if (racer.wpm > 0 && racer.wpm > maxWpmRefs.current[racer.id]) {
+        maxWpmRefs.current[racer.id] = racer.wpm;
       }
     });
   }, [displayRacers]);
@@ -42,6 +54,17 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
   const getSafeProgress = (racer) => {
     const maxProgress = maxProgressRefs.current[racer.id] || 0;
     return Math.max(racer.progress || 0, maxProgress);
+  };
+
+  // Get the safe WPM value that is never 0 after we've started typing
+  const getSafeWpm = (racer) => {
+    // If current WPM is greater than 0, use it
+    if (racer.wpm > 0) {
+      return racer.wpm;
+    }
+    
+    // Otherwise use the max WPM we've seen for this racer
+    return maxWpmRefs.current[racer.id] || 0;
   };
 
   return (
@@ -73,7 +96,7 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
                 <div className="racer-info">
                   <span className="racer-name">{racer.name || `Player ${index + 1}`}</span>
                   <span className="racer-stats">
-                    <span className="wpm-display">{racer.wpm || 0} WPM</span>
+                    <span className="wpm-display">{getSafeWpm(racer)} WPM</span>
                     <span className="progress-display">{Math.round(racer.progress || 0)}%</span>
                     {racer.progress >= 100 && (
                       <span className="place-display">{getPlace(racer)}</span>

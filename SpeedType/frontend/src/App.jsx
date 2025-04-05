@@ -245,6 +245,10 @@ function App() {
         
         if (raceState === 'finished' && myRacer) {
           myRacer.progress = 100;
+          // Preserve non-zero WPM values when race is finished
+          if (myRacer.wpm === 0 && lastWpmRef.current > 0) {
+            myRacer.wpm = lastWpmRef.current;
+          }
         }
         
         return [...otherRacers, myRacer].filter(Boolean);
@@ -473,7 +477,7 @@ function App() {
       const me = { 
         ...currentRacers.find(r => r.id === socket.id),
         progress,
-        wpm
+        wpm: wpm > 0 ? wpm : lastWpmRef.current // Use last WPM if current is 0
       };
       return [...otherRacers, me];
     });
@@ -486,16 +490,24 @@ function App() {
     }
     
     // Send WPM update only on significant changes
-    if (Math.abs(wpm - lastWpmRef.current) >= 5) {
-      lastWpmRef.current = wpm;
-      socket.emit('wpm_update', { wpm });
+    if (Math.abs(wpm - lastWpmRef.current) >= 5 || wpm > 0) {
+      // Store the WPM if it's valid (non-zero)
+      if (wpm > 0) {
+        lastWpmRef.current = wpm;
+      }
+      socket.emit('wpm_update', { wpm: wpm > 0 ? wpm : lastWpmRef.current });
     }
 
     // Check if race is complete
     if (progress >= 100) {
       setRaceState('finished');
       socket.emit('progress_update', { progress: 100 });
-      socket.emit('wpm_update', { wpm });
+      // Make sure we're sending a valid WPM value when race completes
+      if (wpm === 0 && lastWpmRef.current > 0) {
+        socket.emit('wpm_update', { wpm: lastWpmRef.current });
+      } else {
+        socket.emit('wpm_update', { wpm });
+      }
       
       // Notify server that we finished
       socket.emit('race_complete');

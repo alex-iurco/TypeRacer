@@ -14,6 +14,7 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
   const textRef = useRef(textToType);
   const lastWpmUpdateRef = useRef(null);
   const lastUpdateTimeRef = useRef(null);
+  const lastValidWpmRef = useRef(0);
 
   // Split text into words
   const words = textToType.split(' ');
@@ -37,6 +38,7 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
       setIsCompleted(false);
       setStartTime(null);
       setWpm(0);
+      lastValidWpmRef.current = 0;
     }
   }, [textToType]);
 
@@ -63,7 +65,7 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
 
     const calculateWPM = () => {
       const timeElapsed = (Date.now() - startTime) / 1000 / 60; // in minutes
-      if (timeElapsed === 0) return 0;
+      if (timeElapsed <= 0.01) return lastValidWpmRef.current; // Return last valid WPM if time is very small
       
       // Count completed words including the current word if it's complete
       let completedWords = currentWordIndex;
@@ -88,7 +90,16 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
                         (input.length > 0 ? input.length : 0);
       const standardWords = totalChars / standardWordLength;
       
-      return Math.round(standardWords / timeElapsed);
+      // Calculate WPM and ensure it's never negative
+      const calculatedWpm = Math.max(0, Math.round(standardWords / timeElapsed));
+      
+      // Store this as the last valid WPM
+      if (calculatedWpm > 0) {
+        lastValidWpmRef.current = calculatedWpm;
+      }
+      
+      // If the calculated WPM is 0 but we have a previous valid value, use that instead
+      return calculatedWpm > 0 ? calculatedWpm : lastValidWpmRef.current;
     };
 
     const interval = setInterval(() => {
@@ -172,8 +183,10 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
         lastProgressRef.current = finalProgress;
         // Calculate final WPM
         const timeElapsed = (Date.now() - startTime) / 1000 / 60;
-        const finalWPM = Math.round((currentWordIndex + 1) / timeElapsed);
+        const finalWPM = Math.max(lastValidWpmRef.current, Math.round((currentWordIndex + 1) / timeElapsed));
         setWpm(finalWPM);
+        // Store the final WPM to prevent it being reset
+        lastValidWpmRef.current = finalWPM;
         onProgress(finalProgress, newInput, finalWPM);
       }
     } else {
@@ -190,8 +203,10 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
         lastProgressRef.current = finalProgress;
         // Calculate final WPM
         const timeElapsed = (Date.now() - startTime) / 1000 / 60;
-        const finalWPM = Math.round((currentWordIndex + 1) / timeElapsed);
+        const finalWPM = Math.max(lastValidWpmRef.current, Math.round((currentWordIndex + 1) / timeElapsed));
         setWpm(finalWPM);
+        // Store the final WPM to prevent it being reset
+        lastValidWpmRef.current = finalWPM;
         onProgress(finalProgress, newInput, finalWPM);
       } else {
         // Move to next word
@@ -299,7 +314,7 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
       {isCompleted && (
         <div className="race-complete">
           <h3>Race Complete!</h3>
-          <div className="wpm-display">{wpm} WPM</div>
+          <div className="wpm-display">{wpm > 0 ? wpm : lastValidWpmRef.current} WPM</div>
         </div>
       )}
     </div>

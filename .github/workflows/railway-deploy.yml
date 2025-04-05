@@ -53,7 +53,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Authenticating with Railway..."
-          echo "$RAILWAY_TOKEN" | railway login
+          railway login --json --token "$RAILWAY_TOKEN"
           echo "Starting deployment..."
           railway up
 

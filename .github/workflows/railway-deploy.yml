@@ -20,6 +20,20 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Set Railway Variables
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Setting Railway variables..."
+          railway variables set NODE_ENV=production
+          railway variables set PORT=3001
+          railway variables set ALLOWED_ORIGINS="https://speedtype.robocat.ai,http://localhost:3000"
+          railway variables set CORS_METHODS="GET,POST,OPTIONS"
+          railway variables set CORS_CREDENTIALS="true"
+
       - name: Verify Backend Files
         run: |
           echo "Checking backend directory structure:"
@@ -40,17 +54,10 @@ jobs:
           ls -la dist/
 
       - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
+        uses: railwayapp/cli@master
         with:
           railway_token: ${{ secrets.RAILWAY_TOKEN }}
           service: "speedtype-backend"
-          directory: "SpeedType/backend"
-          variables: |
-            NODE_ENV=production
-            PORT=3001
-            ALLOWED_ORIGINS=https://speedtype.robocat.ai,http://localhost:3000
-            CORS_METHODS=GET,POST,OPTIONS
-            CORS_CREDENTIALS=true
 
       - name: Verify Deployment
         run: |

@@ -49,11 +49,11 @@ jobs:
           CORS_CREDENTIALS=true
           EOF
           
-          echo "Linking Railway project..."
-          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway link --environment production
+          echo "Logging in to Railway..."
+          echo "$RAILWAY_TOKEN" | railway login
           
           echo "Starting Railway deployment..."
-          RAILWAY_TOKEN="$RAILWAY_TOKEN" railway up
+          railway up
           
           echo "Deployment initiated, waiting for service to be ready..."
           sleep 30

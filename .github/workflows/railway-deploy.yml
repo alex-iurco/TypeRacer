@@ -26,23 +26,40 @@ jobs:
           ls -la SpeedType/backend
           echo "\nChecking package.json:"
           cat SpeedType/backend/package.json
-          echo "\nChecking railway.toml:"
-          cat SpeedType/backend/railway.toml
 
       - name: Install Dependencies
         working-directory: SpeedType/backend
         run: npm install
 
+      - name: Build Backend
+        working-directory: SpeedType/backend
+        run: |
+          echo "Building TypeScript..."
+          npm run build
+          echo "Verifying build output..."
+          ls -la dist/
+
       - name: Setup and Deploy to Railway
         working-directory: SpeedType/backend
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          NODE_ENV: production
+          PORT: 3001
+          ALLOWED_ORIGINS: "https://speedtype.robocat.ai,http://localhost:3000"
+          CORS_METHODS: "GET,POST,OPTIONS"
+          CORS_CREDENTIALS: "true"
         run: |
           echo "Installing Railway CLI..."
           npm install -g @railway/cli
           
+          echo "Setting up Railway environment variables..."
+          railway variables set NODE_ENV=production
+          railway variables set PORT=3001
+          railway variables set ALLOWED_ORIGINS="https://speedtype.robocat.ai,http://localhost:3000"
+          railway variables set CORS_METHODS="GET,POST,OPTIONS"
+          railway variables set CORS_CREDENTIALS="true"
+          
           echo "Starting Railway deployment..."
-          # Specify the service name explicitly
           railway up --service speedtype-backend || exit 1
           
           echo "Deployment initiated, waiting for service to be ready..."
@@ -51,4 +68,8 @@ jobs:
       - name: Verify Deployment
         run: |
           echo "Verifying deployment..."
-          curl -I https://speedtype-backend-production.up.railway.app/ || true 
+          for i in {1..3}; do
+            echo "Attempt $i to verify deployment..."
+            curl -v https://speedtype-backend-production.up.railway.app/api/ || true
+            sleep 10
+          done 

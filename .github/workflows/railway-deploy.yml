@@ -39,43 +39,19 @@ jobs:
           echo "Verifying build output..."
           ls -la dist/
 
-      - name: Setup and Deploy to Railway
-        working-directory: SpeedType/backend
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          echo "Installing Railway CLI..."
-          npm install -g @railway/cli
-          
-          echo "Logging in to Railway..."
-          # Export token for Railway CLI
-          export RAILWAY_TOKEN="$RAILWAY_TOKEN"
-          railway login
-          
-          echo "Setting up Railway environment variables..."
-          # Create a temporary JSON file with all variables
-          cat > railway-vars.json << EOF
-          {
-            "NODE_ENV": "production",
-            "PORT": "3001",
-            "ALLOWED_ORIGINS": "https://speedtype.robocat.ai,http://localhost:3000",
-            "CORS_METHODS": "GET,POST,OPTIONS",
-            "CORS_CREDENTIALS": "true"
-          }
-          EOF
-          
-          # Use railway link to connect to the project
-          railway link --project speedtype
-          
-          # Import variables from the JSON file
-          railway variables import railway-vars.json
-          
-          echo "Starting Railway deployment..."
-          railway up --service speedtype-backend || exit 1
-          
-          echo "Deployment initiated, waiting for service to be ready..."
-          sleep 30
-          
+      - name: Deploy to Railway
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: "speedtype-backend"
+          directory: "SpeedType/backend"
+          variables: |
+            NODE_ENV=production
+            PORT=3001
+            ALLOWED_ORIGINS=https://speedtype.robocat.ai,http://localhost:3000
+            CORS_METHODS=GET,POST,OPTIONS
+            CORS_CREDENTIALS=true
+
       - name: Verify Deployment
         run: |
           echo "Verifying deployment..."

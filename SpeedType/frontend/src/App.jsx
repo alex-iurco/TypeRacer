@@ -26,13 +26,6 @@ try {
     withCredentials: true,
     extraHeaders: {
       'X-Client-Version': '1.0.1'
-    },
-    transportOptions: {
-      polling: {
-        extraHeaders: {
-          'X-Client-Version': '1.0.1'
-        }
-      }
     }
   };
 
@@ -41,14 +34,9 @@ try {
   // Debug socket events
   socket.on('connect_error', (error) => {
     console.error('Socket.IO Connect Error:', {
-      error: error,
       message: error.message,
-      description: error.description,
-      context: error.context,
       type: error.type,
-      transport: socket.io.engine?.transport?.name,
-      url: socket.io.uri,
-      opts: socket.io.opts
+      transport: socket.io.engine?.transport?.name
     });
   });
 
@@ -56,23 +44,13 @@ try {
     console.error('Socket.IO Error:', error);
   });
 
-  socket.io.on('error', (error) => {
-    console.error('Socket.IO Manager Error:', error);
-  });
-
   socket.io.on('reconnect_attempt', (attempt) => {
-    console.log('Socket.IO Reconnection Attempt:', {
-      attempt: attempt,
-      transport: socket.io.engine?.transport?.name
-    });
+    console.log('Socket.IO Reconnection Attempt:', attempt);
   });
 
   // After successful polling connection, enable WebSocket upgrade
   socket.on('connect', () => {
-    console.log('Socket.IO Connected:', {
-      id: socket.id,
-      transport: socket.io.engine?.transport?.name
-    });
+    console.log('Socket.IO Connected with transport:', socket.io.engine?.transport?.name);
     
     // Enable WebSocket upgrade after successful polling connection
     socket.io.opts.transports = ['polling', 'websocket'];

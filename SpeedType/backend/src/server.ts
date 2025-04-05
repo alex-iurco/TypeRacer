@@ -26,7 +26,6 @@ const app = express();
 // Debug middleware to log all requests
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
   next();
 });
 
@@ -34,22 +33,18 @@ app.use((req, res, next) => {
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     const allowedOrigins = getAllowedOrigins();
-    console.log('Checking CORS for origin:', origin);
-    console.log('Allowed origins:', allowedOrigins);
     
     // In development or if no origin is set, allow all origins
     if (process.env.NODE_ENV !== 'production' || !origin) {
-      console.log('CORS: Development mode or no origin, allowing access');
       callback(null, true);
       return;
     }
     
     // Check if origin is allowed
     if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      console.log('CORS: Origin allowed:', origin);
       callback(null, true);
     } else {
-      console.log('CORS: Origin rejected:', origin);
+      console.warn('CORS: Origin rejected:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -150,59 +145,29 @@ const io = new Server(httpServer, {
   httpCompression: true
 });
 
-// Debug Socket.IO events with more detailed error logging
+// Debug Socket.IO events with more focused error logging
 io.engine.on("connection_error", (err) => {
   console.error("Socket.IO connection error:", {
-    error: err,
     message: err.message,
     code: err.code,
-    context: err.context,
-    stack: err.stack,
-    headers: err.req?.headers,
-    url: err.req?.url,
-    method: err.req?.method
+    headers: err.req?.headers?.origin
   });
 });
 
-io.engine.on("headers", (headers, req) => {
-  console.log("Socket.IO headers:", {
-    headers: headers,
-    request: {
-      method: req.method,
-      url: req.url,
-      headers: req.headers,
-      upgrade: req.headers.upgrade,
-      connection: req.headers.connection,
-      origin: req.headers.origin
-    }
-  });
-});
-
-// Add more detailed Socket.IO connection logging
+// Add focused Socket.IO connection logging
 io.on('connection', (socket) => {
   console.log('New client connected:', {
     id: socket.id,
     transport: socket.conn.transport.name,
-    headers: socket.handshake.headers,
-    query: socket.handshake.query,
-    address: socket.handshake.address,
-    time: new Date().toISOString()
+    origin: socket.handshake.headers.origin
   });
 
   socket.conn.on('upgrade', (transport) => {
-    console.log('Transport upgraded:', {
-      socketId: socket.id,
-      from: socket.conn.transport.name,
-      to: transport.name
-    });
+    console.log('Transport upgraded for client:', socket.id, 'to:', transport.name);
   });
 
   socket.on('disconnect', (reason) => {
-    console.log('Client disconnected:', {
-      id: socket.id,
-      reason: reason,
-      time: new Date().toISOString()
-    });
+    console.log('Client disconnected:', socket.id, 'reason:', reason);
   });
 });
 

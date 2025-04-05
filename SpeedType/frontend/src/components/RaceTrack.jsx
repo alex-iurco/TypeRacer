@@ -118,7 +118,7 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
                   style={{
                     position: 'absolute',
                     left: `${safeProgress}%`,
-                    top: '-20px',
+                    top: '-30px',
                     transform: 'translateX(-50%)',
                     transition: 'left 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)'
                   }}

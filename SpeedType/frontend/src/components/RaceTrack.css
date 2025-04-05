@@ -119,8 +119,8 @@
 .race-progress {
   position: relative;
   height: 8px;
-  margin-top: 30px;
-  margin-bottom: 20px;
+  margin-top: 45px;
+  margin-bottom: 30px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
   overflow: visible;
@@ -149,9 +149,9 @@
 }
 
 .car-container svg {
-  width: 32px;
-  height: 32px;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.2));
+  width: 80px;
+  height: 40px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
 }
 
 .finish-line {

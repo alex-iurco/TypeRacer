@@ -2,8 +2,8 @@ import React from 'react';
 
 const CarIcon = ({ color }) => (
   <svg
-    width="40"
-    height="20"
+    width="80"
+    height="40"
     viewBox="0 0 40 20"
     fill={color}
     xmlns="http://www.w3.org/2000/svg"

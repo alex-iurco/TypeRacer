@@ -48,7 +48,9 @@ jobs:
           npm install -g @railway/cli
           
           echo "Logging in to Railway..."
-          railway login --token "$RAILWAY_TOKEN"
+          # Export token for Railway CLI
+          export RAILWAY_TOKEN="$RAILWAY_TOKEN"
+          railway login
           
           echo "Setting up Railway environment variables..."
           # Create a temporary JSON file with all variables

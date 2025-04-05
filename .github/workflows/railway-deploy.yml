@@ -52,10 +52,8 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          echo "Authenticating with Railway..."
-          echo "$RAILWAY_TOKEN" | railway login --json
           echo "Starting deployment..."
-          railway up
+          railway up --service speedtype-backend
 
       - name: Verify Deployment
         run: |

@@ -131,32 +131,46 @@ app.use((req, res) => {
 // Create HTTP server and Socket.IO instance
 const httpServer = createHttpServer(app);
 const io = new Server(httpServer, {
-  cors: corsOptions,
-  transports: ['websocket', 'polling'],
+  cors: {
+    origin: getAllowedOrigins(),
+    methods: ['GET', 'POST'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  },
+  transports: ['polling', 'websocket'],
   allowUpgrades: true,
-  pingTimeout: 30000,
+  pingTimeout: 60000,
   pingInterval: 25000,
   cookie: false,
   allowEIO3: true,
   path: '/socket.io/',
   connectTimeout: 45000,
   maxHttpBufferSize: 1e8,
-  perMessageDeflate: {
-    threshold: 32768
-  }
+  perMessageDeflate: false,
+  httpCompression: true
 });
 
-// Debug Socket.IO events
+// Debug Socket.IO events with more detailed error logging
 io.engine.on("connection_error", (err) => {
-  console.log("Socket.IO connection error:", err);
+  console.error("Socket.IO connection error:", {
+    error: err,
+    message: err.message,
+    code: err.code,
+    context: err.context,
+    stack: err.stack
+  });
 });
 
 io.engine.on("headers", (headers, req) => {
-  console.log("Socket.IO headers:", headers);
-  console.log("Socket.IO request:", {
-    method: req.method,
-    url: req.url,
-    headers: req.headers
+  console.log("Socket.IO headers:", {
+    headers: headers,
+    request: {
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      upgrade: req.headers.upgrade,
+      connection: req.headers.connection
+    }
   });
 });
 
@@ -167,13 +181,23 @@ io.on('connection', (socket) => {
     transport: socket.conn.transport.name,
     headers: socket.handshake.headers,
     query: socket.handshake.query,
-    address: socket.handshake.address
+    address: socket.handshake.address,
+    time: new Date().toISOString()
+  });
+
+  socket.conn.on('upgrade', (transport) => {
+    console.log('Transport upgraded:', {
+      socketId: socket.id,
+      from: socket.conn.transport.name,
+      to: transport.name
+    });
   });
 
   socket.on('disconnect', (reason) => {
     console.log('Client disconnected:', {
       id: socket.id,
-      reason: reason
+      reason: reason,
+      time: new Date().toISOString()
     });
   });
 });

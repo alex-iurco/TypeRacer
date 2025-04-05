@@ -47,15 +47,15 @@ export default defineConfig(({ command, mode }) => {
       }
     },
     define: {
-      // Expose env variables to the client
-      __VITE_BACKEND_URL__: JSON.stringify(env.VITE_BACKEND_URL),
-      __VITE_NODE_ENV__: JSON.stringify(env.VITE_NODE_ENV),
-      __VITE_SOCKET_TIMEOUT__: env.VITE_SOCKET_TIMEOUT,
-      __VITE_RETRY_DELAY__: env.VITE_RETRY_DELAY,
-      __VITE_RECONNECTION_ATTEMPTS__: env.VITE_RECONNECTION_ATTEMPTS,
-      __VITE_SOCKET_TRANSPORTS__: JSON.stringify(env.VITE_SOCKET_TRANSPORTS),
-      __VITE_SOCKET_AUTO_CONNECT__: env.VITE_SOCKET_AUTO_CONNECT === 'true',
-      __VITE_SOCKET_RECONNECTION__: env.VITE_SOCKET_RECONNECTION === 'true'
+      // Expose env variables to the client with the same names they're using
+      'import.meta.env.VITE_NODE_ENV': JSON.stringify(env.VITE_NODE_ENV),
+      'import.meta.env.VITE_BACKEND_URL': JSON.stringify(env.VITE_BACKEND_URL),
+      'import.meta.env.VITE_SOCKET_TIMEOUT': env.VITE_SOCKET_TIMEOUT,
+      'import.meta.env.VITE_RETRY_DELAY': env.VITE_RETRY_DELAY,
+      'import.meta.env.VITE_RECONNECTION_ATTEMPTS': env.VITE_RECONNECTION_ATTEMPTS,
+      'import.meta.env.VITE_SOCKET_TRANSPORTS': JSON.stringify(env.VITE_SOCKET_TRANSPORTS),
+      'import.meta.env.VITE_SOCKET_AUTO_CONNECT': env.VITE_SOCKET_AUTO_CONNECT === 'true',
+      'import.meta.env.VITE_SOCKET_RECONNECTION': env.VITE_SOCKET_RECONNECTION === 'true'
     }
   };
 }); 

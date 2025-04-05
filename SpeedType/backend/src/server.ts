@@ -23,6 +23,13 @@ const getAllowedOrigins = () => {
 // Create and configure the app
 const app = express();
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
 // Use allowed origins from environment
 app.use(cors({
   origin: getAllowedOrigins(),
@@ -33,11 +40,13 @@ app.use(express.json());
 
 // Health check route
 app.get('/health', (req, res) => {
+  console.log('Health check endpoint called');
   res.json({ status: 'ok' });
 });
 
 // Quotes route
 app.get('/api/quotes', (req, res) => {
+  console.log('Quotes endpoint called');
   const quotes = [
     "The quick brown fox jumps over the lazy dog.",
     "To be or not to be, that is the question.",
@@ -55,6 +64,20 @@ app.get('/api/quotes', (req, res) => {
   res.json(shuffledQuotes);
 });
 
+// Add catch-all route for debugging
+app.use((req, res) => {
+  console.log('404 - Route not found:', req.method, req.path);
+  console.log('Available routes:', app._router.stack
+    .filter((r: any) => r.route && r.route.path)
+    .map((r: any) => `${Object.keys(r.route.methods).join(',')} ${r.route.path}`));
+  res.status(404).json({ 
+    error: 'Not Found',
+    path: req.path,
+    method: req.method,
+    message: 'The requested resource was not found on this server'
+  });
+});
+
 // Create HTTP server and Socket.IO instance
 const httpServer = createHttpServer(app);
 const io = new Server(httpServer, {
@@ -69,8 +92,18 @@ setupRaceSocket(io);
 
 // Start the server if this is the main module
 if (require.main === module) {
+  // Log all registered routes
+  console.log('Registered routes:');
+  app._router.stack.forEach((r: any) => {
+    if (r.route && r.route.path) {
+      console.log(`${Object.keys(r.route.methods).join(',')} ${r.route.path}`);
+    }
+  });
+
   httpServer.listen(PORT, () => {
     console.log(`Server listening on *:${PORT}`);
+    console.log('Allowed origins:', getAllowedOrigins());
+    console.log('Environment:', process.env.NODE_ENV);
   });
 }
 

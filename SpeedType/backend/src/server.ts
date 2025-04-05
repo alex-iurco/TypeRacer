@@ -136,7 +136,14 @@ const io = new Server(httpServer, {
   allowUpgrades: true,
   pingTimeout: 30000,
   pingInterval: 25000,
-  cookie: false
+  cookie: false,
+  allowEIO3: true,
+  path: '/socket.io/',
+  connectTimeout: 45000,
+  maxHttpBufferSize: 1e8,
+  perMessageDeflate: {
+    threshold: 32768
+  }
 });
 
 // Debug Socket.IO events
@@ -150,6 +157,24 @@ io.engine.on("headers", (headers, req) => {
     method: req.method,
     url: req.url,
     headers: req.headers
+  });
+});
+
+// Add more detailed Socket.IO connection logging
+io.on('connection', (socket) => {
+  console.log('New client connected:', {
+    id: socket.id,
+    transport: socket.conn.transport.name,
+    headers: socket.handshake.headers,
+    query: socket.handshake.query,
+    address: socket.handshake.address
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('Client disconnected:', {
+      id: socket.id,
+      reason: reason
+    });
   });
 });
 

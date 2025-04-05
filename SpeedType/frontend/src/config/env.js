@@ -15,6 +15,13 @@ const ENV = {
       reconnection: import.meta.env.VITE_SOCKET_RECONNECTION !== 'false',
       reconnectionAttempts: parseInt(import.meta.env.VITE_RECONNECTION_ATTEMPTS),
       reconnectionDelay: parseInt(import.meta.env.VITE_RETRY_DELAY),
+      forceNew: true,
+      timeout: parseInt(import.meta.env.VITE_SOCKET_TIMEOUT),
+      path: '/socket.io/',
+      rejectUnauthorized: false,
+      upgrade: true,
+      rememberUpgrade: true,
+      secure: true
     }
   },
   production: {
@@ -27,6 +34,13 @@ const ENV = {
       reconnection: import.meta.env.VITE_SOCKET_RECONNECTION !== 'false',
       reconnectionAttempts: parseInt(import.meta.env.VITE_RECONNECTION_ATTEMPTS),
       reconnectionDelay: parseInt(import.meta.env.VITE_RETRY_DELAY),
+      forceNew: true,
+      timeout: parseInt(import.meta.env.VITE_SOCKET_TIMEOUT),
+      path: '/socket.io/',
+      rejectUnauthorized: false,
+      upgrade: true,
+      rememberUpgrade: true,
+      secure: true
     }
   },
   // You can add more environments here (staging, testing, etc.)

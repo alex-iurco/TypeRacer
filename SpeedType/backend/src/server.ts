@@ -55,7 +55,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version'],
   exposedHeaders: ['Content-Range', 'X-Content-Range']
 };
 
@@ -135,7 +135,7 @@ const io = new Server(httpServer, {
     origin: getAllowedOrigins(),
     methods: ['GET', 'POST'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version']
   },
   transports: ['polling', 'websocket'],
   allowUpgrades: true,
@@ -157,7 +157,10 @@ io.engine.on("connection_error", (err) => {
     message: err.message,
     code: err.code,
     context: err.context,
-    stack: err.stack
+    stack: err.stack,
+    headers: err.req?.headers,
+    url: err.req?.url,
+    method: err.req?.method
   });
 });
 
@@ -169,7 +172,8 @@ io.engine.on("headers", (headers, req) => {
       url: req.url,
       headers: req.headers,
       upgrade: req.headers.upgrade,
-      connection: req.headers.connection
+      connection: req.headers.connection,
+      origin: req.headers.origin
     }
   });
 });

@@ -23,6 +23,17 @@ try {
     timeout: config.SOCKET_TIMEOUT,
     autoConnect: false, // Prevent auto-connection before we're ready
     transports: ['polling'], // Start with polling only
+    withCredentials: true,
+    extraHeaders: {
+      'X-Client-Version': '1.0.1'
+    },
+    transportOptions: {
+      polling: {
+        extraHeaders: {
+          'X-Client-Version': '1.0.1'
+        }
+      }
+    }
   };
 
   socket = io(config.BACKEND_URL, socketConfig);
@@ -35,7 +46,9 @@ try {
       description: error.description,
       context: error.context,
       type: error.type,
-      transport: socket.io.engine?.transport?.name
+      transport: socket.io.engine?.transport?.name,
+      url: socket.io.uri,
+      opts: socket.io.opts
     });
   });
 

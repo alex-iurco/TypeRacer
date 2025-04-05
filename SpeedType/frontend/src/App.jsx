@@ -17,15 +17,26 @@ console.log('Socket.IO Configuration:', {
 // Create socket with configuration from env
 let socket;
 try {
-  socket = io(config.BACKEND_URL, {
+  // Force polling first to ensure connection
+  const socketConfig = {
     ...config.SOCKET_CONFIG,
     timeout: config.SOCKET_TIMEOUT,
-    autoConnect: false // Prevent auto-connection before we're ready
-  });
+    autoConnect: false, // Prevent auto-connection before we're ready
+    transports: ['polling'], // Start with polling only
+  };
+
+  socket = io(config.BACKEND_URL, socketConfig);
 
   // Debug socket events
   socket.on('connect_error', (error) => {
-    console.error('Socket.IO Connect Error:', error);
+    console.error('Socket.IO Connect Error:', {
+      error: error,
+      message: error.message,
+      description: error.description,
+      context: error.context,
+      type: error.type,
+      transport: socket.io.engine?.transport?.name
+    });
   });
 
   socket.on('error', (error) => {
@@ -37,7 +48,21 @@ try {
   });
 
   socket.io.on('reconnect_attempt', (attempt) => {
-    console.log('Socket.IO Reconnection Attempt:', attempt);
+    console.log('Socket.IO Reconnection Attempt:', {
+      attempt: attempt,
+      transport: socket.io.engine?.transport?.name
+    });
+  });
+
+  // After successful polling connection, enable WebSocket upgrade
+  socket.on('connect', () => {
+    console.log('Socket.IO Connected:', {
+      id: socket.id,
+      transport: socket.io.engine?.transport?.name
+    });
+    
+    // Enable WebSocket upgrade after successful polling connection
+    socket.io.opts.transports = ['polling', 'websocket'];
   });
 
   // Start the connection

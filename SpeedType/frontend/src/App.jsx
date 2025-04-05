@@ -117,6 +117,12 @@ function App() {
     }
   };
 
+  // Add useEffect to fetch quotes on mount
+  useEffect(() => {
+    console.log('Fetching initial quotes');
+    fetchQuotes();
+  }, []); // Empty dependency array means this runs once on mount
+
   // Socket event handlers with error recovery
   useEffect(() => {
     function onConnect() {

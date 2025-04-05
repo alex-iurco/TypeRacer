@@ -38,14 +38,28 @@ app.use(cors({
 
 app.use(express.json());
 
+// Create router for all API routes
+const router = express.Router();
+
+// Root route
+router.get('/', (req, res) => {
+  console.log('Root endpoint called');
+  res.json({ 
+    status: 'healthy',
+    message: 'SpeedType Backend is running!',
+    version: '1.0.1',
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
 // Health check route
-app.get('/health', (req, res) => {
+router.get('/health', (req, res) => {
   console.log('Health check endpoint called');
   res.json({ status: 'ok' });
 });
 
 // Quotes route
-app.get('/api/quotes', (req, res) => {
+router.get('/quotes', (req, res) => {
   console.log('Quotes endpoint called');
   const quotes = [
     "The quick brown fox jumps over the lazy dog.",
@@ -63,6 +77,9 @@ app.get('/api/quotes', (req, res) => {
   const shuffledQuotes = quotes.sort(() => Math.random() - 0.5).slice(0, 5);
   res.json(shuffledQuotes);
 });
+
+// Mount all routes under /api
+app.use('/api', router);
 
 // Add catch-all route for debugging
 app.use((req, res) => {

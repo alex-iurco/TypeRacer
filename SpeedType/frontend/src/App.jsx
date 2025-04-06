@@ -6,6 +6,7 @@ import TypingArea from './components/TypingArea'
 import { APP_VERSION } from './config/version'
 import { config } from './config/env'
 
+// Test change that should trigger version bump
 // Debug logging for Socket.IO configuration
 console.log('Socket.IO Configuration:', {
   backendUrl: config.BACKEND_URL,

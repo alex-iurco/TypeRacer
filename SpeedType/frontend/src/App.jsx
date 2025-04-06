@@ -15,6 +15,7 @@ console.log('Socket.IO Configuration:', {
   environment: import.meta.env.MODE
 });
 
+// Third test change to reach the 3-commit threshold for version bump
 // Create socket with configuration from env
 let socket;
 try {

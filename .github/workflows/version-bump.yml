@@ -1,14 +1,38 @@
 name: Version Bump
 
 on:
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Type of version bump (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+  
+  # Automatic trigger on pushes
   push:
     branches: [main]
     paths:
-      - 'SpeedType/frontend/**'
-      - 'SpeedType/backend/**'
+      # Only trigger on significant changes, not on every commit
+      - 'SpeedType/frontend/src/**/*.jsx'
+      - 'SpeedType/frontend/src/**/*.js'
+      - 'SpeedType/backend/src/**/*.ts'
       - '.github/workflows/version-bump.yml'
+      # Exclude tests, docs, and configuration files
+      - '!SpeedType/frontend/src/**/*.test.js'
+      - '!SpeedType/frontend/src/**/*.test.jsx'
+      - '!SpeedType/backend/src/**/*.test.ts'
       - '!**.md'
+      - '!**.json'
       - '!.gitignore'
+      - '!SpeedType/frontend/public/**'
+      - '!SpeedType/frontend/test/**'
+      - '!SpeedType/backend/test/**'
 
 jobs:
   bump-version:
@@ -33,28 +57,63 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
+      # Check if we should run the version bump
+      - name: Check If Version Bump is Needed
+        id: check-bump
+        if: github.event_name == 'push'
+        run: |
+          # Find the last version bump commit
+          LAST_BUMP=$(git log --grep="chore: bump version" -1 --format="%H")
+          
+          if [ -z "$LAST_BUMP" ]; then
+            echo "No previous version bump found, will proceed"
+            echo "should_bump=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Count significant commits since last bump (excluding version bump commits)
+          COMMIT_COUNT=$(git log $LAST_BUMP..HEAD --no-merges --format="%H" -- 'SpeedType/frontend/src/' 'SpeedType/backend/src/' | grep -v "chore: bump version" | wc -l | tr -d ' ')
+          echo "Found $COMMIT_COUNT significant commits since last version bump"
+          
+          # Only bump if we have at least 3 significant commits
+          if [ "$COMMIT_COUNT" -ge 3 ]; then
+            echo "Enough significant changes ($COMMIT_COUNT commits) to justify a version bump"
+            echo "should_bump=true" >> $GITHUB_OUTPUT
+          else
+            echo "Not enough significant changes yet to justify a version bump"
+            echo "should_bump=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Determine Version Bump Type
         id: bump-type
+        if: github.event_name == 'workflow_dispatch' || steps.check-bump.outputs.should_bump == 'true'
         run: |
-          # Check commit messages since last tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          echo "Last tag: $LAST_TAG"
-          
-          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
-          echo "Commits since last tag:"
-          echo "$COMMITS"
-          
-          # Default to patch bump
-          BUMP_TYPE="patch"
-          
-          # Check for specific keywords in commit messages
-          echo "$COMMITS" | grep -iE "BREAKING CHANGE|!:" && BUMP_TYPE="major"
-          echo "$COMMITS" | grep -iE "feat:|feature:" && [ "$BUMP_TYPE" != "major" ] && BUMP_TYPE="minor"
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Use the manually specified bump type
+            BUMP_TYPE="${{ github.event.inputs.bump_type }}"
+            echo "Using manually specified bump type: $BUMP_TYPE"
+          else
+            # Automatic determination based on commit messages
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            echo "Last tag: $LAST_TAG"
+            
+            COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s")
+            echo "Commits since last tag:"
+            echo "$COMMITS"
+            
+            # Default to patch bump
+            BUMP_TYPE="patch"
+            
+            # Check for specific keywords in commit messages
+            echo "$COMMITS" | grep -iE "BREAKING CHANGE|!:" && BUMP_TYPE="major"
+            echo "$COMMITS" | grep -iE "feat:|feature:" && [ "$BUMP_TYPE" != "major" ] && BUMP_TYPE="minor"
+          fi
           
           echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
           echo "Determined bump type: $BUMP_TYPE"
 
       - name: Bump Version
+        if: github.event_name == 'workflow_dispatch' || steps.check-bump.outputs.should_bump == 'true'
         run: |
           cd SpeedType/frontend
           CURRENT_VERSION=$(node -p "require('./package.json').version")
@@ -99,6 +158,7 @@ jobs:
           git push --tags
 
       - name: Update Deployment Workflows
+        if: github.event_name == 'workflow_dispatch' || steps.check-bump.outputs.should_bump == 'true'
         run: |
           NEW_VERSION=$(node -p "require('./SpeedType/frontend/package.json').version")
-          echo "Triggering deployment for version $NEW_VERSION" 
+          echo "Triggering deployment for version $NEW_VERSION"

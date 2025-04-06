@@ -28,6 +28,7 @@ try {
     extraHeaders: {
       'X-Client-Version': '1.0.1'
     },
+    // Another test change that should trigger the version bump workflow
     reconnectionAttempts: 3,
     reconnectionDelay: 2000,
     reconnectionDelayMax: 5000,

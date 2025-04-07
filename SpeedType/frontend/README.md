@@ -54,8 +54,37 @@ The application connects to the backend service at:
 ## Available Scripts
 
 - `npm run dev`: Start development server
+- `npm run dev:prod`: Start development server with production configuration
+- `npm run dev:test`: Start development server with test configuration
 - `npm run build`: Build for production
 - `npm run preview`: Preview production build locally
+- `npm run test`: Run unit tests
+- `npm run test:e2e`: Run all end-to-end tests using default configuration
+- `npm run test:e2e:test-env`: Run end-to-end tests in test environment
+- `npm run test:e2e:prod`: Run end-to-end tests against production environment
+- `npm run test:e2e:ui`: Open the Playwright UI for test debugging
+
+## End-to-End Testing
+
+The application has end-to-end tests configured with Playwright. These tests can be run against different environments:
+
+### Test Environment (Default)
+```bash
+npm run test:e2e:test-env
+```
+This runs tests using a local development server in test mode, which configures the application to use test-specific settings.
+
+### Production Environment
+```bash
+npm run test:e2e:prod
+```
+This runs tests against the deployed production application. It uses the actual production frontend and backend without starting any local servers.
+
+### Viewing Test Reports
+After running tests, you can view the HTML report:
+```bash
+npx playwright show-report
+```
 
 ## Project Structure
 

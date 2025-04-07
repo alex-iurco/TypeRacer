@@ -4,9 +4,21 @@ import { defineConfig, loadEnv } from 'vite';
 // @ts-ignore - process is available in Node.js environment
 const isProduction = process.env.PLAYWRIGHT_ENV === 'production';
 
-// Import URLs from constants (with a workaround for TypeScript)
-// @ts-ignore - CommonJS/ESM interop
-const { URLs } = require('./e2e/constants');
+// Define URLs directly to avoid ESM/CommonJS issues
+const URLS = {
+  development: {
+    frontend: 'http://localhost:3000',
+    backend: 'http://localhost:3001'
+  },
+  test: {
+    frontend: 'http://localhost:3000',
+    backend: 'http://localhost:3001'
+  },
+  production: {
+    frontend: 'https://speedtype.robocat.ai',
+    backend: 'https://speedtype-backend-production.up.railway.app'
+  }
+};
 
 const config: PlaywrightTestConfig = {
   testDir: './e2e',
@@ -24,7 +36,7 @@ const config: PlaywrightTestConfig = {
   use: {
     headless: true,
     // For production tests, use the actual production URL
-    baseURL: isProduction ? URLs.production.frontend : URLs.test.frontend,
+    baseURL: isProduction ? URLS.production.frontend : URLS.test.frontend,
     trace: 'retain-on-failure',
     screenshot: 'on',
     video: 'on',
@@ -35,7 +47,7 @@ const config: PlaywrightTestConfig = {
   ...(isProduction ? {} : {
     webServer: {
       command: 'npm run dev -- --mode test',
-      url: URLs.test.frontend,
+      url: URLS.test.frontend,
       // @ts-ignore - process is available in Node.js environment
       reuseExistingServer: !process.env.CI,
       timeout: 120000,

@@ -9,8 +9,8 @@ test('race initialization and countdown', async ({ page }) => {
     logs.push(text);
   });
   
-  // Navigate to the app
-  await page.goto('http://localhost:3000');
+  // Navigate to the app - use baseURL from config
+  await page.goto('/');
   console.log('Navigated to app');
   
   // Wait for the app to load

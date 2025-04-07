@@ -10,7 +10,7 @@ test.describe('Race Feature', () => {
     page.on('pageerror', err => console.error('Browser error:', err));
     
     console.log('Navigating to race page...');
-    await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     console.log('Page loaded');
 
     // Wait for socket connection by checking connection status
@@ -134,8 +134,8 @@ test.describe('Race Feature', () => {
     try {
       // Navigate both players to the multiplayer page
       await Promise.all([
-        player1Page.goto('http://localhost:3000/race/multiplayer'),
-        player2Page.goto('http://localhost:3000/race/multiplayer')
+        player1Page.goto('/race/multiplayer'),
+        player2Page.goto('/race/multiplayer')
       ]);
 
       // Wait for connection status

@@ -69,6 +69,39 @@ const ENV = {
       randomizationFactor: 0.5
     }
   },
+  // Test environment configuration
+  test: {
+    BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
+    SOCKET_TIMEOUT: parseInt(import.meta.env.VITE_SOCKET_TIMEOUT),
+    RETRY_DELAY: parseInt(import.meta.env.VITE_RETRY_DELAY),
+    SOCKET_CONFIG: {
+      transports: (import.meta.env.VITE_SOCKET_TRANSPORTS || 'polling,websocket').split(','),
+      autoConnect: import.meta.env.VITE_SOCKET_AUTO_CONNECT !== 'false',
+      reconnection: import.meta.env.VITE_SOCKET_RECONNECTION !== 'false',
+      reconnectionAttempts: parseInt(import.meta.env.VITE_RECONNECTION_ATTEMPTS),
+      reconnectionDelay: parseInt(import.meta.env.VITE_RETRY_DELAY),
+      forceNew: true,
+      timeout: parseInt(import.meta.env.VITE_SOCKET_TIMEOUT),
+      path: '/socket.io/',
+      rejectUnauthorized: false,
+      upgrade: true,
+      rememberUpgrade: true,
+      secure: true,
+      withCredentials: true,
+      extraHeaders: {
+        'X-Client-Version': '1.0.1'
+      },
+      transportOptions: {
+        polling: {
+          extraHeaders: {
+            'X-Client-Version': '1.0.1'
+          }
+        }
+      },
+      reconnectionDelayMax: 10000,
+      randomizationFactor: 0.5
+    }
+  },
   // You can add more environments here (staging, testing, etc.)
 };
 

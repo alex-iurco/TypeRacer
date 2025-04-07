@@ -20,7 +20,7 @@ const config: PlaywrightTestConfig = {
     actionTimeout: 15000,
   },
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run dev -- --mode test',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

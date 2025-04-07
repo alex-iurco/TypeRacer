@@ -6,7 +6,7 @@ export const initializeEnv = () => {
   const mode = import.meta.env.MODE;
 
   // Validate mode
-  if (!['development', 'production'].includes(mode)) {
+  if (!['development', 'production', 'test'].includes(mode)) {
     console.warn(`Invalid environment mode: ${mode}, falling back to development`);
   }
 

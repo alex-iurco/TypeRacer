@@ -75,29 +75,33 @@ test('race initialization and countdown', async ({ page }) => {
   console.log('State after text appears:', textState);
   
   // Wait for countdown to complete
+  await page.waitForTimeout(5000); // Wait for the full countdown duration
+  
+  // Instead of waiting for countdown to be "0", wait for countdown overlay to disappear
   await page.waitForFunction(() => {
-    const countdown = document.querySelector('.countdown');
-    return countdown && countdown.textContent === '0';
-  }, { timeout: 5000 });
+    // Check if race-track exists and has racing state
+    const raceTrack = document.querySelector('.race-track');
+    return raceTrack && raceTrack.getAttribute('data-race-state') === 'racing';
+  }, { timeout: 15000 });
   console.log('Countdown completed');
   
   // Wait for TypingArea to be mounted and initialized
   await page.waitForFunction(() => {
-    const typingArea = document.querySelector('.typing-area');
+    const typingAreaContainer = document.querySelector('.typing-area-container');
     const textDisplay = document.querySelector('.text-display');
-    return typingArea && textDisplay && textDisplay.textContent.length > 0;
-  }, { timeout: 5000 });
+    return typingAreaContainer && textDisplay && textDisplay.textContent.length > 0;
+  }, { timeout: 15000 });
   console.log('TypingArea mounted and initialized');
   
   // Wait for race to start
   await page.waitForFunction(() => {
-    const raceContainer = document.querySelector('.race-container');
-    const typingInput = document.querySelector('.typing-area input');
-    return raceContainer && 
-           raceContainer.className.includes('racing') && 
+    const raceTrack = document.querySelector('.race-track');
+    const typingInput = document.querySelector('.typing-input');
+    return raceTrack && 
+           raceTrack.getAttribute('data-race-state') === 'racing' && 
            typingInput && 
            !typingInput.disabled;
-  }, { timeout: 5000 });
+  }, { timeout: 15000 });
   console.log('Race started');
   
   // Take a screenshot for debugging

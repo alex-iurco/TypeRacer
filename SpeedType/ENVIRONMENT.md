@@ -91,6 +91,17 @@ The frontend environment is initialized in `src/config/loadEnv.js`:
 - Sets up configuration based on the current environment
 - Supports three environments: development, production, and test
 
+### Shared Utilities
+Both frontend and backend now use shared utilities:
+- `envUtils.js/ts` - Common functions for environment handling
+- Standardized validation and parsing of environment variables
+- Consistent error handling and logging
+
+This approach reduces duplication and makes environment handling more maintainable by:
+- Using the same validation logic for both frontend and backend
+- Providing consistent defaults and error handling
+- Simplifying the addition of new environment variables or environments
+
 ## Switching Environments
 
 ### Development Mode
@@ -194,7 +205,13 @@ Solution:
    - Update validation in loadEnv files
    - Document new variables in this file
 
-4. Error Handling
+4. Shared Utilities
+   - Use the shared utility functions in `envUtils.js/ts` for handling environment variables
+   - Follow the established patterns for validation and parsing
+   - Keep frontend and backend utilities aligned
+   - When adding new utility functions, document them and ensure they work in both frontend and backend contexts
+
+5. Error Handling
    - Check environment initialization logs
    - Verify all required variables are present
    - Handle missing or invalid variables gracefully

@@ -1,8 +1,12 @@
 import { PlaywrightTestConfig, devices } from '@playwright/test';
-
-// Check if we're running in production mode
+import path from 'path';
+import { defineConfig, loadEnv } from 'vite';
 // @ts-ignore - process is available in Node.js environment
 const isProduction = process.env.PLAYWRIGHT_ENV === 'production';
+
+// Import URLs from constants (with a workaround for TypeScript)
+// @ts-ignore - CommonJS/ESM interop
+const { URLs } = require('./e2e/constants');
 
 const config: PlaywrightTestConfig = {
   testDir: './e2e',
@@ -20,7 +24,7 @@ const config: PlaywrightTestConfig = {
   use: {
     headless: true,
     // For production tests, use the actual production URL
-    baseURL: isProduction ? 'https://speedtype-frontend-production.up.railway.app' : 'http://localhost:3000',
+    baseURL: isProduction ? URLs.production.frontend : URLs.test.frontend,
     trace: 'retain-on-failure',
     screenshot: 'on',
     video: 'on',
@@ -31,7 +35,7 @@ const config: PlaywrightTestConfig = {
   ...(isProduction ? {} : {
     webServer: {
       command: 'npm run dev -- --mode test',
-      url: 'http://localhost:3000',
+      url: URLs.test.frontend,
       // @ts-ignore - process is available in Node.js environment
       reuseExistingServer: !process.env.CI,
       timeout: 120000,

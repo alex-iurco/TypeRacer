@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { CURRENT, DOMAINS } from './constants';
 
 test('should detect correct environment', async ({ page }) => {
   // Navigate to the main page
@@ -44,12 +45,16 @@ test('should detect correct environment', async ({ page }) => {
   // If we're in production mode, verify we're using a production URL
   if (process.env.PLAYWRIGHT_ENV === 'production') {
     // Just check that we're hitting a URL that matches our expected production domain
-    expect(page.url()).toContain('speedtype-frontend-production');
+    expect(page.url()).toContain(DOMAINS.production.frontend);
     
-    // Since window.__ENV__ might not be accessible in production, skip the backend check
+    // Check if backend URL is accessible through window.__ENV__
+    if (backendUrl !== 'unknown') {
+      expect(backendUrl).toContain(DOMAINS.production.backend);
+    }
+    
     console.log('Running in production mode, URL verified');
   } else {
     // In test mode, we should be using localhost
-    expect(page.url()).toContain('localhost');
+    expect(page.url()).toContain(DOMAINS.test.frontend);
   }
 }); 

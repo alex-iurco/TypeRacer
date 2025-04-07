@@ -62,6 +62,20 @@ VITE_SOCKET_AUTO_CONNECT=true
 VITE_SOCKET_RECONNECTION=true
 ```
 
+3. `.env.test`
+```env
+# Test Environment
+VITE_NODE_ENV=test
+VITE_BACKEND_URL=https://speedtype-backend-production.up.railway.app
+VITE_USE_PROD_BACKEND=true
+VITE_SOCKET_TIMEOUT=15000
+VITE_RETRY_DELAY=2000
+VITE_RECONNECTION_ATTEMPTS=5
+VITE_SOCKET_TRANSPORTS=websocket,polling
+VITE_SOCKET_AUTO_CONNECT=true
+VITE_SOCKET_RECONNECTION=true
+```
+
 ## Environment Initialization
 
 ### Backend
@@ -75,6 +89,7 @@ The frontend environment is initialized in `src/config/loadEnv.js`:
 - Uses Vite's built-in environment handling
 - Validates required environment variables
 - Sets up configuration based on the current environment
+- Supports three environments: development, production, and test
 
 ## Switching Environments
 
@@ -98,6 +113,17 @@ NODE_ENV=production npm run dev:prod
 # Terminal 2 - Frontend
 cd SpeedType/frontend
 npm run dev:prod
+```
+
+### Test Mode
+```bash
+# Terminal 1 - Backend
+cd SpeedType/backend
+NODE_ENV=production npm run dev:prod
+
+# Terminal 2 - Frontend
+cd SpeedType/frontend
+npm run dev:test
 ```
 
 ## Troubleshooting
@@ -187,6 +213,33 @@ The application includes several ways to verify the current environment:
    - Different socket timeouts
 
 ## Testing Environments
+
+### Environment Validation
+
+The application now includes robust environment validation in the test suite that:
+- Verifies the correct URLs and configuration are used
+- Validates application settings via console logs
+- Documents discrepancies between expected and actual settings
+
+### Test Environment
+
+The test environment (`.env.test`) is configured with:
+- Longer timeouts for more reliable test execution
+- Connection to the production backend for stable testing
+- Additional validation steps to ensure proper configuration
+
+For running tests in the test environment:
+```bash
+# Run end-to-end tests in test environment
+cd SpeedType/frontend
+npm run test:e2e:test-env
+```
+
+For more details about testing, refer to:
+- [E2E Testing Guide](docs/testing/E2E_TESTING.md)
+- [Frontend README](frontend/README.md)
+
+### Environment Test Script
 
 Use the environment test script to verify configuration:
 ```bash

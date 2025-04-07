@@ -38,7 +38,7 @@ The script supports several options:
 | ------ | ----------- |
 | `-e, --env <env>` | Set environment: 'development' or 'production' |
 | `-t, --test <spec>` | Specify test file or grep pattern |
-| `-b, --browser <name>` | Specify browser: 'chromium', 'firefox', or 'webkit' |
+| `-b, --browser <n>` | Specify browser: 'chromium', 'firefox', or 'webkit' |
 | `--headed` | Run browser in headed mode (visible) |
 | `--no-servers` | Don't start servers (assumes they're already running) |
 | `-h, --help` | Show help message |
@@ -84,6 +84,45 @@ If you prefer to run tests manually:
    npx playwright test
    ```
 
+## Environment-Specific Testing
+
+The application supports different testing environments to ensure comprehensive test coverage.
+
+### Test Environment (Default)
+```bash
+npm run test:e2e:test-env
+```
+
+This runs tests using a local development server in test mode, which configures the application with test-specific settings.
+
+#### Test Environment Configuration
+- Frontend URL: http://localhost:3000
+- Backend URL: https://speedtype-backend-production.up.railway.app (production backend)
+- Configured for reliable and consistent testing with longer timeouts
+- Environment validation tests are run automatically to verify configuration
+
+### Production Environment
+```bash
+npm run test:e2e:prod
+```
+
+This runs tests against the deployed production application, using actual production URLs.
+
+#### Production Environment Configuration
+- Frontend URL: https://speedtype.robocat.ai
+- Backend URL: https://speedtype-backend-production.up.railway.app
+
+## Environment Validation
+
+Every test run now includes an environment validation step that:
+
+- Verifies the correct frontend and backend URLs are used based on the environment
+- Checks server connectivity
+- Validates application configuration from console logs
+- Documents when actual settings differ from expected settings
+
+This validation ensures that tests run against correctly configured environments and helps prevent inconsistent test results due to configuration issues.
+
 ## Viewing Test Reports
 
 Playwright generates HTML reports for test runs. After running tests:
@@ -91,6 +130,12 @@ Playwright generates HTML reports for test runs. After running tests:
 ```bash
 npx playwright show-report
 ```
+
+This opens an interactive HTML report that shows:
+- Test results with pass/fail status
+- Screenshots captured during test execution
+- Console logs and error messages
+- Test execution time
 
 ## Troubleshooting
 
@@ -100,4 +145,20 @@ If tests fail:
 2. Verify you're using the correct environment setting
 3. Look at the test report for specific error details
 4. Try running a specific test with `--headed` to see what's happening
-5. Increase verbosity with `--debug` flag 
+5. Increase verbosity with `--debug` flag
+6. Check for timeout issues - we've increased timeouts for the test environment
+
+## Related Documentation
+
+For more information about environment configuration and testing:
+
+- [Environment Configuration](../../ENVIRONMENT.md) - Details about environment variables and setup
+- [Frontend README](../../frontend/README.md) - Information about available scripts and configurations
+- [Testing Strategy](../testing_strategy.md) - Overview of the project's testing approach and best practices
+
+## Recent Enhancements
+
+- **Improved Environment Detection**: Added validation tests that check the actual environment from console logs
+- **Enhanced Timeout Configuration**: Increased timeouts for critical operations in test environment
+- **Better Selectors**: Updated element selectors to match actual DOM structure
+- **Environment-Specific Scripts**: Added dedicated scripts for running tests in specific environments 

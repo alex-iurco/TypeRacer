@@ -74,11 +74,28 @@ npm run test:e2e:test-env
 ```
 This runs tests using a local development server in test mode, which configures the application to use test-specific settings.
 
+#### Test Environment Configuration
+- Frontend URL: http://localhost:3000
+- Note: The test environment is configured to use the production backend URL (https://speedtype-backend-production.up.railway.app) instead of localhost:3001 for more reliable testing.
+
 ### Production Environment
 ```bash
 npm run test:e2e:prod
 ```
 This runs tests against the deployed production application. It uses the actual production frontend and backend without starting any local servers.
+
+#### Production Environment Configuration
+- Frontend URL: https://speedtype.robocat.ai
+- Backend URL: https://speedtype-backend-production.up.railway.app
+
+### Environment Validation
+The test suite includes an environment validation test that:
+- Verifies the correct frontend and backend URLs are used based on the environment
+- Checks server connectivity
+- Validates application configuration from console logs
+- Documents when actual settings differ from expected settings
+
+This environment validation runs at the beginning of all test suites to ensure proper configuration before running functional tests.
 
 ### Viewing Test Reports
 After running tests, you can view the HTML report:
@@ -89,24 +106,3 @@ npx playwright show-report
 ## Project Structure
 
 ```
-src/
-├── components/
-│   ├── RaceTrack/
-│   │   ├── RaceTrack.jsx
-│   │   └── RaceTrack.css
-│   ├── TypingArea/
-│   │   ├── TypingArea.jsx
-│   │   └── TypingArea.css
-│   └── CarIcon/
-│       └── CarIcon.jsx
-├── App.jsx
-└── main.jsx
-```
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Submit a pull request
-
-For detailed contribution guidelines, see the main repository README.

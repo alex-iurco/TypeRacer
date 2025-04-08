@@ -1,17 +1,13 @@
+import { validateRequiredVars, logEnvironmentInfo, validateMode } from './envUtils';
+
 /**
  * Initialize and validate frontend environment variables
  * @returns {void}
  */
 export const initializeEnv = () => {
-  const mode = import.meta.env.MODE;
-
-  // Validate mode
-  if (!['development', 'production', 'test'].includes(mode)) {
-    console.warn(`Invalid environment mode: ${mode}, falling back to development`);
-  }
-
-  // Log environment initialization
-  console.log(`Environment initialized: ${mode}`);
+  const validModes = ['development', 'production', 'test'];
+  const defaultMode = 'development';
+  const mode = validateMode(import.meta.env.MODE, validModes, defaultMode);
 
   // Validate required environment variables
   const requiredVars = [
@@ -25,10 +21,7 @@ export const initializeEnv = () => {
     'VITE_SOCKET_RECONNECTION'
   ];
 
-  const missing = requiredVars.filter(key => {
-    const value = import.meta.env[key];
-    return value === undefined || value === null || value === '';
-  });
+  const missing = validateRequiredVars(import.meta.env, requiredVars);
 
   if (missing.length > 0) {
     console.error('Environment variables:', import.meta.env);
@@ -36,5 +29,8 @@ export const initializeEnv = () => {
   }
 
   // Log environment details
-  console.log('Using backend URL:', import.meta.env.VITE_BACKEND_URL);
+  const config = {
+    BACKEND_URL: import.meta.env.VITE_BACKEND_URL
+  };
+  logEnvironmentInfo(mode, config);
 } 

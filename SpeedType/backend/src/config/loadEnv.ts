@@ -1,31 +1,25 @@
-import dotenv from 'dotenv';
-import path from 'path';
+import { 
+  loadEnvFile, 
+  validateRequiredVars, 
+  logEnvironmentInfo, 
+  validateMode 
+} from './envUtils';
 
 /**
  * Initialize environment variables
  * @param mode - 'development' | 'production'
  */
-export const initializeEnv = (mode: string = process.env.NODE_ENV || 'development') => {
+export const initializeEnv = (inputMode: string = process.env.NODE_ENV || 'development') => {
   // Validate mode
-  if (!['development', 'production'].includes(mode)) {
-    console.warn(`Invalid environment mode: ${mode}, falling back to development`);
-    mode = 'development';
-  }
+  const validModes = ['development', 'production'];
+  const defaultMode = 'development';
+  const mode = validateMode(inputMode, validModes, defaultMode);
 
   // Set NODE_ENV
   process.env.NODE_ENV = mode;
 
   // Load environment variables from the appropriate file
-  const envFile = path.resolve(process.cwd(), `.env.${mode}`);
-  const result = dotenv.config({ path: envFile });
-
-  if (result.error) {
-    throw new Error(`Error loading environment file ${envFile}: ${result.error.message}`);
-  }
-
-  // Log environment initialization
-  console.log(`Environment initialized: ${mode}`);
-  console.log(`Using environment file: ${envFile}`);
+  loadEnvFile(mode);
 
   // Validate required environment variables
   const requiredVars = [
@@ -35,8 +29,11 @@ export const initializeEnv = (mode: string = process.env.NODE_ENV || 'developmen
     'CORS_CREDENTIALS'
   ];
 
-  const missing = requiredVars.filter(key => !process.env[key]);
+  const missing = validateRequiredVars(requiredVars);
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
+
+  // Log environment details
+  logEnvironmentInfo(mode);
 } 

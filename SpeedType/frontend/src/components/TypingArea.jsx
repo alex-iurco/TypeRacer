@@ -1,193 +1,122 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import './TypingArea.css';
 
-const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onStart, isRaceComplete }) => {
-  const [input, setInput] = useState('');
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [isError, setIsError] = useState(false);
-  const [startTime, setStartTime] = useState(null);
-  const [wpm, setWpm] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const inputRef = useRef(null);
-  const lastProgressRef = useRef(0);
-  const textRef = useRef(textToType);
-  const lastWpmUpdateRef = useRef(null);
-  const lastUpdateTimeRef = useRef(null);
-  const lastValidWpmRef = useRef(0);
+// Import custom hooks
+import useTypingState from '../hooks/useTypingState';
+import useProgressCalculation from '../hooks/useProgressCalculation';
+import useWpmCalculation from '../hooks/useWpmCalculation';
 
-  // Split text into words
-  const words = textToType.split(' ');
-  const currentWord = words[currentWordIndex] || '';
+// Import components
+import TextDisplay from './TextDisplay';
+import TypingInput from './TypingInput';
+import CompletionResults from './CompletionResults';
 
-  // Update text ref when text changes
+const TypingArea = ({ 
+  textToType = '', 
+  onProgress, 
+  isMultiplayer, 
+  isStarted, 
+  onStart, 
+  isRaceComplete 
+}) => {
+  // Initialize typing state
+  const {
+    input,
+    setInput,
+    currentWordIndex,
+    isError,
+    setIsError,
+    isCompleted,
+    setIsCompleted,
+    words,
+    currentWord,
+    checkInputMatch,
+    completeWord,
+    resetTypingState
+  } = useTypingState(textToType);
+
+  // Initialize progress tracking
+  const {
+    progress,
+    calculateProgress,
+    updateProgress,
+    completeProgress,
+    resetProgress,
+    lastProgressRef
+  } = useProgressCalculation(onProgress);
+
+  // Initialize WPM calculation
+  const {
+    wpm,
+    startTime,
+    calculateWPM,
+    calculateFinalWPM,
+    resetWpm,
+    lastValidWpmRef,
+    lastProgressRef: wpmProgressRef
+  } = useWpmCalculation(onProgress, isStarted, isCompleted);
+
+  // Track if we already shared the refs to avoid infinite loops
+  const refsSharedRef = useRef(false);
+
+  // Share progress ref between hooks
   useEffect(() => {
-    console.log('Text changed:', textToType);
-    textRef.current = textToType;
-  }, [textToType]);
+    if (wpmProgressRef && lastProgressRef && !refsSharedRef.current) {
+      wpmProgressRef.current = lastProgressRef.current;
+      refsSharedRef.current = true;
+    }
+  }, [wpmProgressRef, lastProgressRef]);
 
-  // Reset state when race starts or text changes
+  // Update wpmProgressRef when lastProgressRef changes significantly
   useEffect(() => {
-    console.log('Text or race state changed:', { textToType, isStarted, isRaceComplete });
-    if (textToType) {
-      setInput('');
-      setCurrentWordIndex(0);
-      setIsError(false);
-      setProgress(0);
-      lastProgressRef.current = 0;
-      setIsCompleted(false);
-      setStartTime(null);
-      setWpm(0);
-      lastValidWpmRef.current = 0;
+    if (wpmProgressRef && lastProgressRef && refsSharedRef.current) {
+      wpmProgressRef.current = lastProgressRef.current;
     }
-  }, [textToType]);
+  }, [progress, wpmProgressRef, lastProgressRef]);
 
-  // Set start time when race starts
+  // Reset when race is complete from external signal
   useEffect(() => {
-    console.log('Race started:', isStarted);
-    if (isStarted && !startTime) {
-      setStartTime(Date.now());
-      lastUpdateTimeRef.current = Date.now();
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
+    if (isRaceComplete) {
+      setIsCompleted(true);
     }
-  }, [isStarted]);
+  }, [isRaceComplete, setIsCompleted]);
 
-  // Only update WPM periodically
-  useEffect(() => {
-    if (!startTime) return;
-    if (!isStarted && !isCompleted) return;
-    if (isCompleted) {
-      // Don't start interval if race is completed
-      return;
-    }
-
-    const calculateWPM = () => {
-      const timeElapsed = (Date.now() - startTime) / 1000 / 60; // in minutes
-      if (timeElapsed <= 0.01) return lastValidWpmRef.current; // Return last valid WPM if time is very small
-      
-      // Count completed words including the current word if it's complete
-      let completedWords = currentWordIndex;
-      
-      // Add partial progress on current word
-      if (input.length > 0) {
-        let correctChars = 0;
-        for (let i = 0; i < input.length && i < currentWord.length; i++) {
-          if (input[i] === currentWord[i]) {
-            correctChars++;
-          } else {
-            break;
-          }
-        }
-        const wordProgress = correctChars / currentWord.length;
-        completedWords += wordProgress;
-      }
-      
-      // Standard WPM calculation (5 characters = 1 word)
-      const standardWordLength = 5;
-      const totalChars = words.slice(0, currentWordIndex).join('').length + 
-                        (input.length > 0 ? input.length : 0);
-      const standardWords = totalChars / standardWordLength;
-      
-      // Calculate WPM and ensure it's never negative
-      const calculatedWpm = Math.max(0, Math.round(standardWords / timeElapsed));
-      
-      // Store this as the last valid WPM
-      if (calculatedWpm > 0) {
-        lastValidWpmRef.current = calculatedWpm;
-      }
-      
-      // If the calculated WPM is 0 but we have a previous valid value, use that instead
-      return calculatedWpm > 0 ? calculatedWpm : lastValidWpmRef.current;
-    };
-
-    const interval = setInterval(() => {
-      if (isCompleted) {
-        clearInterval(interval);
-        return;
-      }
-      const currentWPM = calculateWPM();
-      setWpm(currentWPM);
-      
-      // Only send periodic updates if there's a significant change or every 2 seconds
-      if (!lastWpmUpdateRef.current || 
-          Math.abs(currentWPM - lastWpmUpdateRef.current) > 5 || 
-          Date.now() - lastUpdateTimeRef.current > 2000) {
-        lastWpmUpdateRef.current = currentWPM;
-        lastUpdateTimeRef.current = Date.now();
-        onProgress(lastProgressRef.current, input, currentWPM);
-      }
-    }, 1000); // Update every second instead of half-second
-
-    // Calculate initial WPM
-    const initialWPM = calculateWPM();
-    setWpm(initialWPM);
-    onProgress(lastProgressRef.current, input, initialWPM);
-
-    return () => clearInterval(interval);
-  }, [isStarted, isCompleted, startTime, currentWordIndex, input, currentWord]);
-
-  const calculateProgress = (newInput) => {
-    if (!textToType) return 0;
-    if (isCompleted) return 100;
-
-    // Calculate total characters in completed words including spaces
-    const completedWords = words.slice(0, currentWordIndex);
-    let totalCorrectChars = completedWords.join(' ').length;
-    if (currentWordIndex > 0) {
-      // Add space for each completed word except the last one
-      totalCorrectChars += 1;
-    }
-    
-    // Add correct characters from current word
-    if (newInput) {
-      for (let i = 0; i < newInput.length && i < currentWord.length; i++) {
-        if (newInput[i] === currentWord[i]) {
-          totalCorrectChars++;
-        } else {
-          break;
-        }
-      }
-    }
-
-    // Calculate progress percentage based on total characters including spaces
-    const totalChars = textToType.length;
-    const progress = Math.min(100, Math.round((totalCorrectChars / totalChars) * 100));
-    return progress;
-  };
-
+  // Handle input change
   const handleInputChange = (e) => {
     if (!isStarted || isCompleted || !textToType) return;
     
     const newInput = e.target.value;
     setInput(newInput);
 
-    // Check if the current input matches the current word
-    if (currentWord.startsWith(newInput)) {
-      setIsError(false);
-      const newProgress = calculateProgress(newInput);
-      setProgress(newProgress);
-      
-      // Only emit progress update on significant progress change (at least 1%)
-      if (Math.abs(newProgress - lastProgressRef.current) >= 1) {
-        lastProgressRef.current = newProgress;
-        onProgress(newProgress, newInput, wpm);
-      }
+    // Calculate total typed characters for WPM
+    const getTypedChars = () => {
+      // Count completed words
+      const completedWordChars = words.slice(0, currentWordIndex).join('').length;
+      // Add spaces between words
+      const spacesCount = Math.max(0, currentWordIndex);
+      // Add current input length
+      return completedWordChars + spacesCount + newInput.length;
+    };
 
-      // Check if we've completed the last word
+    // Check if input matches current word
+    if (checkInputMatch(newInput)) {
+      setIsError(false);
+      
+      // Calculate and update progress
+      const newProgress = calculateProgress(words, currentWordIndex, currentWord, newInput, isCompleted);
+      updateProgress(newProgress, newInput, wpm);
+
+      // Check if current word is complete
       if (currentWordIndex === words.length - 1 && newInput === currentWord) {
         setIsCompleted(true);
-        const finalProgress = 100;
-        setProgress(finalProgress);
-        lastProgressRef.current = finalProgress;
-        // Calculate final WPM
-        const timeElapsed = (Date.now() - startTime) / 1000 / 60;
-        const finalWPM = Math.max(lastValidWpmRef.current, Math.round((currentWordIndex + 1) / timeElapsed));
-        setWpm(finalWPM);
-        // Store the final WPM to prevent it being reset
-        lastValidWpmRef.current = finalWPM;
-        onProgress(finalProgress, newInput, finalWPM);
+        
+        // Calculate final metrics
+        const totalChars = getTypedChars();
+        const finalWPM = calculateFinalWPM(words.length, totalChars);
+        
+        // Complete progress
+        completeProgress(newInput, finalWPM);
       }
     } else {
       setIsError(true);
@@ -195,79 +124,29 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
 
     // If space is pressed and input matches current word
     if (e.nativeEvent.data === ' ' && newInput.trim() === currentWord) {
-      if (currentWordIndex === words.length - 1) {
-        // Race completed
+      const raceCompleted = completeWord();
+      
+      if (raceCompleted) {
+        // Race is complete - final word with space
         setIsCompleted(true);
-        const finalProgress = 100;
-        setProgress(finalProgress);
-        lastProgressRef.current = finalProgress;
+        
         // Calculate final WPM
-        const timeElapsed = (Date.now() - startTime) / 1000 / 60;
-        const finalWPM = Math.max(lastValidWpmRef.current, Math.round((currentWordIndex + 1) / timeElapsed));
-        setWpm(finalWPM);
-        // Store the final WPM to prevent it being reset
-        lastValidWpmRef.current = finalWPM;
-        onProgress(finalProgress, newInput, finalWPM);
+        const totalChars = getTypedChars();
+        const finalWPM = calculateFinalWPM(words.length, totalChars);
+        
+        // Complete progress
+        completeProgress(newInput, finalWPM);
       } else {
-        // Move to next word
-        setCurrentWordIndex(prev => prev + 1);
+        // Just move to next word
         setInput('');
-        setIsError(false);
         
-        // Calculate progress for the completed word including its space
-        const completedText = words.slice(0, currentWordIndex + 1).join(' ');
-        const newProgress = calculateProgress(completedText);
+        // Calculate progress for the completed word
+        const newProgress = calculateProgress(words, currentWordIndex + 1, '', '', false);
         
-        // Always update progress on word completion
-        setProgress(newProgress);
-        lastProgressRef.current = newProgress;
-        onProgress(newProgress, '', wpm);
+        // Update progress
+        updateProgress(newProgress, '', wpm);
       }
     }
-  };
-
-  const renderText = () => {
-    if (!textToType) {
-      console.log('No text to render');
-      return null;
-    }
-    
-    console.log('Rendering text:', textToType);
-    let typedCharCount = 0;
-    const typedWords = words.slice(0, currentWordIndex).join(' ');
-    typedCharCount = typedWords.length + (currentWordIndex > 0 ? 1 : 0); // Add space if not first word
-
-    return (
-      <div className="text-display">
-        {words.map((word, wordIndex) => {
-          const isCurrentWord = wordIndex === currentWordIndex;
-          const isPastWord = wordIndex < currentWordIndex;
-          
-          return (
-            <React.Fragment key={wordIndex}>
-              {wordIndex > 0 && ' '}
-              {word.split('').map((char, charIndex) => {
-                const isTyped = isPastWord || (isCurrentWord && charIndex < input.length);
-                const isCorrect = isPastWord || (isCurrentWord && input[charIndex] === char);
-                
-                return (
-                  <span
-                    key={charIndex}
-                    className={`
-                      ${isTyped ? 'char-typed' : 'char-pending'}
-                      ${isTyped ? (isCorrect ? 'char-correct' : 'char-incorrect') : ''}
-                      ${char === ' ' ? 'char-space' : ''}
-                    `}
-                  >
-                    {char}
-                  </span>
-                );
-              })}
-            </React.Fragment>
-          );
-        })}
-      </div>
-    );
   };
 
   return (
@@ -282,7 +161,11 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
       {/* Always show text if available */}
       {textToType && (
         <div className="text-container" style={{ opacity: isStarted ? 1 : 0.7 }}>
-          {renderText()}
+          <TextDisplay
+            words={words}
+            currentWordIndex={currentWordIndex}
+            currentInput={input}
+          />
         </div>
       )}
       
@@ -295,30 +178,41 @@ const TypingArea = ({ textToType = '', onProgress, isMultiplayer, isStarted, onS
       
       {/* Show input field when race is active */}
       {isStarted && !isCompleted && textToType && (
-        <div className="input-container">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={handleInputChange}
-            className={`typing-input ${isError ? 'input-error' : ''}`}
-            placeholder="Type here..."
-            disabled={!isStarted || isCompleted}
-            autoFocus
-          />
-          {isError && <div className="error-indicator" />}
-        </div>
+        <TypingInput
+          input={input}
+          onChange={handleInputChange}
+          isError={isError}
+          isStarted={isStarted}
+          isCompleted={isCompleted}
+        />
       )}
       
       {/* Show completion message */}
       {isCompleted && (
-        <div className="race-complete">
-          <h3>Race Complete!</h3>
-          <div className="wpm-display">{wpm > 0 ? wpm : lastValidWpmRef.current} WPM</div>
-        </div>
+        <CompletionResults
+          wpm={wpm}
+          lastValidWpm={lastValidWpmRef.current}
+        />
       )}
     </div>
   );
+};
+
+TypingArea.propTypes = {
+  textToType: PropTypes.string,
+  onProgress: PropTypes.func.isRequired,
+  isMultiplayer: PropTypes.bool,
+  isStarted: PropTypes.bool,
+  onStart: PropTypes.func,
+  isRaceComplete: PropTypes.bool
+};
+
+TypingArea.defaultProps = {
+  textToType: '',
+  isMultiplayer: false,
+  isStarted: false,
+  onStart: () => {},
+  isRaceComplete: false
 };
 
 export default TypingArea; 

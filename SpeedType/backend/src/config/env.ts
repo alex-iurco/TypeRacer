@@ -1,5 +1,6 @@
 // Environment configuration for backend
 import { initializeEnv } from './loadEnv';
+import { parsePort, parseArrayFromEnv, validateMode } from './envUtils';
 
 // Initialize environment variables
 initializeEnv();
@@ -7,7 +8,7 @@ initializeEnv();
 type Environment = 'development' | 'production';
 
 interface EnvironmentConfig {
-  PORT: string | number;
+  PORT: number;
   ALLOWED_ORIGINS: string[];
   SOCKET_CONFIG: {
     cors: {
@@ -22,59 +23,30 @@ type EnvironmentConfigs = {
   [key in Environment]: EnvironmentConfig;
 };
 
-// Helper function to parse comma-separated string to array
-const parseArrayFromEnv = (value: string | undefined): string[] => {
-  if (!value) {
-    throw new Error('Required environment variable is missing');
-  }
-  return value.split(',').map(item => item.trim());
-};
-
-// Helper function to parse port
-const parsePort = (value: string | undefined): number => {
-  if (!value) {
-    throw new Error('PORT environment variable is missing');
-  }
-  const port = parseInt(value);
-  if (isNaN(port)) {
-    throw new Error('PORT must be a valid number');
-  }
-  return port;
+// Create environment-specific configuration
+const createEnvConfig = (): EnvironmentConfig => {
+  return {
+    PORT: parsePort(process.env.PORT),
+    ALLOWED_ORIGINS: parseArrayFromEnv(process.env.ALLOWED_ORIGINS),
+    SOCKET_CONFIG: {
+      cors: {
+        origin: parseArrayFromEnv(process.env.ALLOWED_ORIGINS),
+        methods: parseArrayFromEnv(process.env.CORS_METHODS),
+        credentials: process.env.CORS_CREDENTIALS === 'true'
+      }
+    }
+  };
 };
 
 const ENV: EnvironmentConfigs = {
-  development: {
-    PORT: parsePort(process.env.PORT),
-    ALLOWED_ORIGINS: parseArrayFromEnv(process.env.ALLOWED_ORIGINS),
-    SOCKET_CONFIG: {
-      cors: {
-        origin: parseArrayFromEnv(process.env.ALLOWED_ORIGINS),
-        methods: parseArrayFromEnv(process.env.CORS_METHODS),
-        credentials: process.env.CORS_CREDENTIALS === 'true'
-      }
-    }
-  },
-  production: {
-    PORT: parsePort(process.env.PORT),
-    ALLOWED_ORIGINS: parseArrayFromEnv(process.env.ALLOWED_ORIGINS),
-    SOCKET_CONFIG: {
-      cors: {
-        origin: parseArrayFromEnv(process.env.ALLOWED_ORIGINS),
-        methods: parseArrayFromEnv(process.env.CORS_METHODS),
-        credentials: process.env.CORS_CREDENTIALS === 'true'
-      }
-    }
-  }
+  development: createEnvConfig(),
+  production: createEnvConfig()
 };
 
 // Get current environment
 const getEnvironment = (): Environment => {
-  const env = process.env.NODE_ENV as Environment;
-  if (!env || !ENV[env]) {
-    console.warn(`Invalid environment: ${env}, falling back to development`);
-    return 'development';
-  }
-  return env;
+  const env = process.env.NODE_ENV as string;
+  return validateMode(env, ['development', 'production'], 'development') as Environment;
 };
 
 // Get configuration for current environment

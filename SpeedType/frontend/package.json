@@ -19,6 +19,7 @@
     "test:e2e:prod": "PLAYWRIGHT_ENV=production playwright test --project=chromium"
   },
   "dependencies": {
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.0",

@@ -121,7 +121,7 @@ const fallbackQuotes = [
   '"You are never too old to set another goal or to dream a new dream. The future depends on what you do today. Do not let yesterday take up too much of today. Life is what happens while you are busy making other plans." - C.S. Lewis'
 ];
 
-function App() {
+function App({ initialMultiplayer = false }) {
   const [isConnected, setIsConnected] = useState(socket.connected)
   const [connectionError, setConnectionError] = useState(null)
   const [raceState, setRaceState] = useState('waiting') // 'waiting', 'racing', 'finished'
@@ -135,7 +135,7 @@ function App() {
   const [isLoadingQuotes, setIsLoadingQuotes] = useState(false)
   const [countdown, setCountdown] = useState(0) // Add state for countdown
   const [currentRoom, setCurrentRoom] = useState(null)
-  const [isMultiplayer, setIsMultiplayer] = useState(false)
+  const [isMultiplayer, setIsMultiplayer] = useState(initialMultiplayer)
   const [isJoiningRoom, setIsJoiningRoom] = useState(false)
   const lastProgressRef = useRef(0);
   const lastWpmRef = useRef(0);
@@ -405,26 +405,56 @@ function App() {
       setIsJoiningRoom(true);
       setConnectionError(null);
       
-      await withTimeout(ensureSocketReady(), config.SOCKET_TIMEOUT);
+      // Ensure socket is connected before proceeding
+      if (!socket.connected) {
+        console.log('Socket not connected, attempting to connect...');
+        socket.connect();
+        
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Socket connection timeout'));
+          }, config.SOCKET_TIMEOUT);
+          
+          socket.once('connect', () => {
+            clearTimeout(timeout);
+            console.log('Socket connected successfully');
+            resolve();
+          });
+        });
+      }
       
       const roomId = 'default-room';
+      console.log('Joining multiplayer room:', roomId);
       
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Room join timeout'));
-        }, config.SOCKET_TIMEOUT);
-
-        socket.emit('joinRoom', roomId);
-        setCurrentRoom(roomId);
-
-        socket.once('roomJoined', () => {
-          clearTimeout(timeout);
-          setTimeout(() => {
-            socket.emit('ready');
-            resolve();
-          }, config.RETRY_DELAY);
+      try {
+        await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Room join timeout'));
+          }, config.SOCKET_TIMEOUT);
+          
+          // First try to join the room
+          socket.emit('joinRoom', roomId);
+          setCurrentRoom(roomId);
+          
+          socket.once('roomJoined', (data) => {
+            clearTimeout(timeout);
+            console.log('Joined room successfully:', data);
+            
+            // After joining room, signal ready state
+            setTimeout(() => {
+              console.log('Emitting ready signal');
+              socket.emit('ready');
+              resolve();
+            }, 500); // Small delay to ensure room state is processed
+          });
         });
-      });
+        
+        console.log('Ready state signaled successfully');
+      } catch (error) {
+        console.error('Failed to handle multiplayer ready state:', error);
+        setConnectionError(`Failed to join multiplayer: ${error.message}`);
+        resetGameState();
+      }
     } catch (error) {
       console.error('Failed to join multiplayer:', error);
       setConnectionError(`Failed to join multiplayer: ${error.message}`);
@@ -453,7 +483,7 @@ function App() {
     }
     setIsMultiplayer(true);
     resetGameState();
-    window.history.pushState({}, '', window.location.pathname);
+    window.history.pushState({}, '', '/race/multiplayer');
   };
 
   const backToSinglePlayer = () => {
@@ -462,6 +492,7 @@ function App() {
     }
     setIsMultiplayer(false);
     resetGameState();
+    window.history.pushState({}, '', '/');
   };
 
   const handleTypingProgress = (progress, currentInput, wpm) => {
@@ -521,6 +552,16 @@ function App() {
     setCustomText(quote);
   };
 
+  // Initialize multiplayer mode from route if specified
+  useEffect(() => {
+    if (initialMultiplayer && isConnected) {
+      // Only auto-join multiplayer if we're connected
+      // Similar to startMultiplayerMode but doesn't need to push state
+      setIsMultiplayer(true);
+      resetGameState();
+    }
+  }, [initialMultiplayer, isConnected, resetGameState]);
+
   return (
     <div className="app-container">
       <header className="app-header">
@@ -531,15 +572,13 @@ function App() {
             {import.meta.env.MODE}
           </span>
         </h1>
-      </header>
-      <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-        {isConnected ? 'Connected' : 'Disconnected'}
-      </div>
-      {connectionError && (
-        <div className="error-message">
-          {connectionError}
+        <div className="connection-status-container">
+          <span className="connection-status" data-testid="connection-status">
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+          {connectionError && <div className="connection-error">{connectionError}</div>}
         </div>
-      )}
+      </header>
       <div className="race-container">
         {!isMultiplayer && raceState === 'waiting' && countdown === 0 && (
           <div className="race-setup">

@@ -132,35 +132,99 @@ test.describe('Race Feature', () => {
     ]);
 
     try {
-      // Navigate both players to the multiplayer page
+      // Enable debug logging with timestamps
+      for (const page of [player1Page, player2Page]) {
+        page.on('console', msg => {
+          const timestamp = new Date().toISOString();
+          console.log(`${timestamp} - Player console:`, msg.text());
+        });
+        page.on('pageerror', err => console.error('Player error:', err));
+      }
+
+      // Navigate both players to the multiplayer page with better error handling
+      console.log('Navigating both players to multiplayer page...');
       await Promise.all([
-        player1Page.goto('/race/multiplayer'),
-        player2Page.goto('/race/multiplayer')
+        player1Page.goto('/race/multiplayer', { waitUntil: 'load' }),
+        player2Page.goto('/race/multiplayer', { waitUntil: 'load' })
+      ]);
+      
+      // Wait for content to be visible before continuing
+      await Promise.all([
+        player1Page.waitForSelector('.multiplayer-waiting', { state: 'visible', timeout: 10000 }),
+        player2Page.waitForSelector('.multiplayer-waiting', { state: 'visible', timeout: 10000 })
+      ]);
+      console.log('Both players at multiplayer page');
+
+      // Take screenshots to debug
+      await Promise.all([
+        player1Page.screenshot({ path: 'test-results/multiplayer-initial-p1.png' }),
+        player2Page.screenshot({ path: 'test-results/multiplayer-initial-p2.png' })
       ]);
 
-      // Wait for connection status
+      // Wait for connection status with retry logic for both pages
       for (const page of [player1Page, player2Page]) {
-        const connectionStatus = page.locator('.connection-status');
-        await connectionStatus.waitFor({ state: 'visible' });
-        expect(await connectionStatus.textContent()).toBe('Connected');
+        let isConnected = false;
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (!isConnected && attempts < maxAttempts) {
+          const connectionStatus = page.locator('.connection-status');
+          await connectionStatus.waitFor({ state: 'visible', timeout: 5000 });
+          const status = await connectionStatus.textContent();
+          console.log(`Connection status attempt ${attempts + 1}: ${status}`);
+          
+          if (status === 'Connected') {
+            isConnected = true;
+            console.log('Successfully connected to server');
+          } else {
+            attempts++;
+            console.log(`Waiting for connection, attempt ${attempts}/${maxAttempts}`);
+            await page.waitForTimeout(1000); // Wait 1 second between checks
+          }
+        }
+        
+        if (!isConnected) {
+          throw new Error('Failed to connect to server after multiple attempts');
+        }
       }
       console.log('Both players connected');
 
-      // Click ready buttons
+      // Click ready buttons with retry logic
       const readyButton = '.ready-button';
+      
+      // Wait for ready buttons to be visible
+      await Promise.all([
+        player1Page.waitForSelector(readyButton, { state: 'visible', timeout: 10000 }),
+        player2Page.waitForSelector(readyButton, { state: 'visible', timeout: 10000 })
+      ]);
+      console.log('Ready buttons visible');
+      
+      // Take screenshots to confirm ready buttons are visible
+      await Promise.all([
+        player1Page.screenshot({ path: 'test-results/multiplayer-ready-p1.png' }),
+        player2Page.screenshot({ path: 'test-results/multiplayer-ready-p2.png' })
+      ]);
+      
+      // Click the ready buttons
       await Promise.all([
         player1Page.click(readyButton),
         player2Page.click(readyButton)
       ]);
       console.log('Both players clicked ready');
 
-      // Wait for countdown
+      // Wait for countdown with longer timeout
       const countdown = '.countdown-overlay';
       await Promise.all([
-        player1Page.waitForSelector(countdown),
-        player2Page.waitForSelector(countdown)
+        player1Page.waitForSelector(countdown, { state: 'visible', timeout: 15000 }),
+        player2Page.waitForSelector(countdown, { state: 'visible', timeout: 15000 })
       ]);
       console.log('Countdown started for both players');
+      
+      // Take screenshots to confirm countdown is visible
+      await Promise.all([
+        player1Page.screenshot({ path: 'test-results/multiplayer-countdown-p1.png' }),
+        player2Page.screenshot({ path: 'test-results/multiplayer-countdown-p2.png' })
+      ]);
 
       // Wait for race to start (5s countdown)
       await Promise.all([

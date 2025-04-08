@@ -24,11 +24,10 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3001;
 
-// Remove sample text, it will be provided by users
-// const sampleText = "...";
-
+// Store race information
 let currentRaceText = null; // Store the active race text
 let racers = {}; // Store racer data { socketId: { id, name, progress } }
+let rooms = {}; // Store room data { roomId: { text, racers: [socketIds], state } }
 
 // Basic route for health check
 app.get('/', (req, res) => {
@@ -63,61 +62,235 @@ io.on('connection', (socket) => {
   }
   socket.emit('race_update', Object.values(racers));
 
+  // Handle room joining
+  socket.on('joinRoom', (roomId) => {
+    console.log(`User ${socket.id} joining room ${roomId}`);
+    
+    // Leave any previous rooms
+    if (socket.rooms.size > 1) {
+      Array.from(socket.rooms)
+        .filter(room => room !== socket.id)
+        .forEach(room => {
+          console.log(`Leaving previous room: ${room}`);
+          socket.leave(room);
+          
+          // Remove from room data if exists
+          if (rooms[room] && rooms[room].racers) {
+            rooms[room].racers = rooms[room].racers.filter(id => id !== socket.id);
+            
+            // Clean up empty rooms
+            if (rooms[room].racers.length === 0) {
+              delete rooms[room];
+            }
+          }
+        });
+    }
+    
+    // Join the new room
+    socket.join(roomId);
+    
+    // Initialize room if it doesn't exist
+    if (!rooms[roomId]) {
+      rooms[roomId] = {
+        text: null,
+        racers: [],
+        state: 'waiting'
+      };
+    }
+    
+    // Add this racer to the room
+    if (!rooms[roomId].racers.includes(socket.id)) {
+      rooms[roomId].racers.push(socket.id);
+    }
+    
+    // Reset racer state
+    if (racers[socket.id]) {
+      racers[socket.id].progress = 0;
+      racers[socket.id].finished = false;
+      racers[socket.id].wpm = 0;
+    }
+    
+    // Notify the user they've joined the room
+    socket.emit('roomJoined', { roomId });
+    
+    // Send current room state
+    socket.emit('room_state', { status: rooms[roomId].state });
+    
+    // If room has text, send it
+    if (rooms[roomId].text) {
+      socket.emit('race_text', rooms[roomId].text);
+    }
+    
+    // Update everyone in the room about racers
+    const roomRacers = rooms[roomId].racers
+      .map(id => racers[id])
+      .filter(Boolean);
+    io.to(roomId).emit('race_update', roomRacers);
+  });
+
+  // Handle leaving a room
+  socket.on('leaveRoom', (roomId) => {
+    console.log(`User ${socket.id} leaving room ${roomId}`);
+    socket.leave(roomId);
+    
+    // Remove from room data
+    if (rooms[roomId] && rooms[roomId].racers) {
+      rooms[roomId].racers = rooms[roomId].racers.filter(id => id !== socket.id);
+      
+      // Clean up empty rooms
+      if (rooms[roomId].racers.length === 0) {
+        delete rooms[roomId];
+      } else {
+        // Update everyone in the room about racers
+        const roomRacers = rooms[roomId].racers
+          .map(id => racers[id])
+          .filter(Boolean);
+        io.to(roomId).emit('race_update', roomRacers);
+      }
+    }
+  });
+
   // Handle custom text submission to START a race
   socket.on('submit_custom_text', (text) => {
     console.log(`Received custom text from ${socket.id} to start race.`);
-    currentRaceText = text; // Set the new text for the race
-
-    // Reset progress for all connected racers
-    for (const id in racers) {
-      racers[id].progress = 0;
-      racers[id].finished = false;
+    
+    // Default to global race if not in any rooms
+    const roomIds = Array.from(socket.rooms).filter(room => room !== socket.id);
+    
+    if (roomIds.length > 0) {
+      // Set text for all rooms this socket is in
+      roomIds.forEach(roomId => {
+        if (rooms[roomId]) {
+          rooms[roomId].text = text;
+          rooms[roomId].state = 'waiting';
+          
+          // Reset progress for all racers in this room
+          if (rooms[roomId].racers) {
+            rooms[roomId].racers.forEach(id => {
+              if (racers[id]) {
+                racers[id].progress = 0;
+                racers[id].finished = false;
+                racers[id].wpm = 0;
+              }
+            });
+          }
+          
+          // Broadcast text to everyone in the room
+          io.to(roomId).emit('race_text', text);
+          io.to(roomId).emit('room_state', { status: 'waiting' });
+          
+          // Update racer status
+          const roomRacers = rooms[roomId].racers
+            .map(id => racers[id])
+            .filter(Boolean);
+          io.to(roomId).emit('race_update', roomRacers);
+        }
+      });
+    } else {
+      // Global race (legacy behavior)
+      currentRaceText = text;
+      
+      // Reset progress for all connected racers
+      for (const id in racers) {
+        racers[id].progress = 0;
+        racers[id].finished = false;
+        racers[id].wpm = 0;
+      }
+      
+      // Broadcast to everyone
+      io.emit('race_text', currentRaceText);
+      io.emit('race_update', Object.values(racers));
     }
-    console.log('Resetting progress for all racers.');
-
-    // Broadcast the new text and the reset racer state to everyone
-    io.emit('race_text', currentRaceText);
-    io.emit('race_update', Object.values(racers));
   });
 
   // Handle ready state and start countdown
   socket.on('ready', () => {
     console.log(`Player ${socket.id} is ready to start`);
     
-    // Start countdown from 3
-    let count = 3;
-    io.emit('countdown', count);
+    // Find rooms this socket is in
+    const roomIds = Array.from(socket.rooms).filter(room => room !== socket.id);
     
-    const countdownInterval = setInterval(() => {
-      count--;
+    if (roomIds.length > 0) {
+      // Start countdown for all rooms this socket is in
+      roomIds.forEach(roomId => {
+        if (rooms[roomId]) {
+          // Start countdown from 3
+          let count = 3;
+          io.to(roomId).emit('countdown', count);
+          
+          const countdownInterval = setInterval(() => {
+            count--;
+            io.to(roomId).emit('countdown', count);
+            
+            if (count === 0) {
+              clearInterval(countdownInterval);
+              rooms[roomId].state = 'racing';
+              io.to(roomId).emit('room_state', { status: 'racing' });
+            }
+          }, 1000);
+        }
+      });
+    } else {
+      // Global countdown (legacy behavior)
+      let count = 3;
       io.emit('countdown', count);
       
-      if (count === 0) {
-        clearInterval(countdownInterval);
-        io.emit('room_state', { status: 'racing' });
-      }
-    }, 1000);
+      const countdownInterval = setInterval(() => {
+        count--;
+        io.emit('countdown', count);
+        
+        if (count === 0) {
+          clearInterval(countdownInterval);
+          io.emit('room_state', { status: 'racing' });
+        }
+      }, 1000);
+    }
   });
 
   // Handle progress update
   socket.on('progress_update', (data) => {
     if (racers[socket.id]) {
-      // Only update progress if there is an active race text
-      if (currentRaceText !== null) {
-        racers[socket.id].progress = data.progress;
-        // Don't broadcast on every progress update
-        if (data.progress === 100) {
-          racers[socket.id].finished = true;
-          io.emit('race_update', Object.values(racers));
-          
-          // Check if all racers finished
-          const allFinished = Object.values(racers).every(racer => racer.progress === 100);
-          if (allFinished) {
-            io.emit('room_state', { status: 'finished' });
+      // Update racer's progress
+      racers[socket.id].progress = data.progress;
+      
+      // Find rooms this socket is in
+      const roomIds = Array.from(socket.rooms).filter(room => room !== socket.id);
+      
+      if (roomIds.length > 0) {
+        // Broadcast to all rooms this socket is in
+        roomIds.forEach(roomId => {
+          if (rooms[roomId]) {
+            if (data.progress === 100) {
+              racers[socket.id].finished = true;
+              
+              // Update everyone in the room
+              const roomRacers = rooms[roomId].racers
+                .map(id => racers[id])
+                .filter(Boolean);
+              io.to(roomId).emit('race_update', roomRacers);
+              
+              // Check if all racers in the room have finished
+              const allFinished = rooms[roomId].racers.every(id => 
+                !racers[id] || racers[id].finished || racers[id].progress === 100
+              );
+              
+              if (allFinished) {
+                rooms[roomId].state = 'finished';
+                io.to(roomId).emit('room_state', { status: 'finished' });
+              }
+            }
           }
+        });
+      } else if (data.progress === 100) {
+        // Global progress (legacy behavior)
+        racers[socket.id].finished = true;
+        io.emit('race_update', Object.values(racers));
+        
+        // Check if all racers finished
+        const allFinished = Object.values(racers).every(racer => racer.progress === 100);
+        if (allFinished) {
+          io.emit('room_state', { status: 'finished' });
         }
-      } else {
-        console.log(`Progress update from ${socket.id} ignored, no active race.`);
       }
     } else {
       console.log(`Received progress from unknown socket: ${socket.id}`);
@@ -129,12 +302,40 @@ io.on('connection', (socket) => {
     if (racers[socket.id]) {
       racers[socket.id].finished = true;
       racers[socket.id].progress = 100;
-      io.emit('race_update', Object.values(racers));
       
-      // Check if all racers finished
-      const allFinished = Object.values(racers).every(racer => racer.progress === 100);
-      if (allFinished) {
-        io.emit('room_state', { status: 'finished' });
+      // Find rooms this socket is in
+      const roomIds = Array.from(socket.rooms).filter(room => room !== socket.id);
+      
+      if (roomIds.length > 0) {
+        // Process for each room
+        roomIds.forEach(roomId => {
+          if (rooms[roomId]) {
+            // Update everyone in the room
+            const roomRacers = rooms[roomId].racers
+              .map(id => racers[id])
+              .filter(Boolean);
+            io.to(roomId).emit('race_update', roomRacers);
+            
+            // Check if all racers in the room have finished
+            const allFinished = rooms[roomId].racers.every(id => 
+              !racers[id] || racers[id].finished || racers[id].progress === 100
+            );
+            
+            if (allFinished) {
+              rooms[roomId].state = 'finished';
+              io.to(roomId).emit('room_state', { status: 'finished' });
+            }
+          }
+        });
+      } else {
+        // Global completion (legacy behavior)
+        io.emit('race_update', Object.values(racers));
+        
+        // Check if all racers finished
+        const allFinished = Object.values(racers).every(racer => racer.progress === 100);
+        if (allFinished) {
+          io.emit('room_state', { status: 'finished' });
+        }
       }
     }
   });
@@ -143,38 +344,74 @@ io.on('connection', (socket) => {
   socket.on('wpm_update', (data) => {
     if (racers[socket.id]) {
       racers[socket.id].wpm = data.wpm;
-      // Don't broadcast on every WPM update
+      // WPM updates don't need frequent broadcasting
     } else {
       console.log(`Received WPM from unknown socket: ${socket.id}`);
     }
   });
 
-  // Add periodic update broadcast
+  // Add periodic update broadcast for each room
   const updateInterval = setInterval(() => {
-    if (Object.keys(racers).length > 0) {
+    // Find rooms this socket is in
+    const roomIds = Array.from(socket.rooms).filter(room => room !== socket.id);
+    
+    if (roomIds.length > 0) {
+      // Send updates to each room
+      roomIds.forEach(roomId => {
+        if (rooms[roomId] && rooms[roomId].racers.length > 0) {
+          const roomRacers = rooms[roomId].racers
+            .map(id => racers[id])
+            .filter(Boolean);
+          io.to(roomId).emit('race_update', roomRacers);
+        }
+      });
+    } else if (Object.keys(racers).length > 0) {
+      // Global updates (legacy behavior)
       io.emit('race_update', Object.values(racers));
     }
-  }, 1000); // Send updates every second
+  }, 1000);
 
-  // Clean up interval on disconnect
+  // Clean up on disconnect
   socket.on('disconnect', () => {
     console.log('user disconnected:', socket.id);
     clearInterval(updateInterval);
+    
+    // Get rooms this socket was in before disconnecting
+    const socketRooms = Object.keys(rooms).filter(roomId => 
+      rooms[roomId].racers.includes(socket.id)
+    );
+    
+    // Remove from all rooms
+    socketRooms.forEach(roomId => {
+      rooms[roomId].racers = rooms[roomId].racers.filter(id => id !== socket.id);
+      
+      // Clean up empty rooms
+      if (rooms[roomId].racers.length === 0) {
+        delete rooms[roomId];
+      } else {
+        // Update everyone in the room
+        const roomRacers = rooms[roomId].racers
+          .map(id => racers[id])
+          .filter(Boolean);
+        io.to(roomId).emit('race_update', roomRacers);
+      }
+    });
+    
+    // Clean up racer data
     const wasRacer = !!racers[socket.id];
     delete racers[socket.id];
-    console.log('Current racers:', racers);
-    // Only notify if they were actually part of the race state
-    if (wasRacer) {
+    
+    // Notify global listeners if they were in the global race
+    if (wasRacer && socketRooms.length === 0) {
       io.emit('race_update', Object.values(racers));
-    }
-    // If no racers left, maybe clear the race text?
-    if (Object.keys(racers).length === 0) {
-      console.log("No racers left, clearing race text.");
-      currentRaceText = null;
+      
+      // If no racers left in global race, clear race text
+      if (Object.keys(racers).length === 0) {
+        console.log("No racers left, clearing race text.");
+        currentRaceText = null;
+      }
     }
   });
-
-  // More event handlers can be added later
 });
 
 // Error handling

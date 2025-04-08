@@ -95,12 +95,18 @@ This process helps ensure that changes are well-understood, targeted, and mainta
   - Created custom hooks: useTypingState, useProgressCalculation, useWpmCalculation
   - Fixed WPM calculation for accurate speed tracking
 
+- Added proper routing and room handling for multiplayer mode:
+  - Implemented React Router for navigation between single player and multiplayer mode
+  - Enhanced socket.io room management to support multiple concurrent games
+  - Fixed e2e tests for multiplayer functionality
+  - Improved connection status display and error handling for better user experience
+
 - Environment configuration has been improved:
   - Extracted common utilities
   - Updated documentation
   
-- End-to-end tests are passing for single player mode
-- The project is at version v0.6.1
+- All end-to-end tests are now passing for both single player and multiplayer mode
+- The project is at version v0.7.0
 
 ## Immediate Goals
 - [Specific feature or enhancement you want to work on]

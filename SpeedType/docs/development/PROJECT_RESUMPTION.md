@@ -30,9 +30,20 @@ I'm working on SpeedType, a web-based application for typing races similar to Ty
    - Share state between components through custom hooks or context
 
 3. **Testing**:
+   - Follow Test-Driven Development (TDD) principles:
+     - Write failing tests first that define expected behavior
+     - Implement the minimum code needed to pass tests
+     - Refactor while maintaining passing tests
+   - Use existing tests to understand functionality before fixing issues:
+     - Analyze e2e tests in the frontend to understand user flows
+     - Review test cases to understand expected component behavior
+     - Run relevant tests in isolation to reproduce and understand issues
+   - Thoroughly investigate using test cases before making changes
    - End-to-end tests with Playwright
    - Run tests with `npm run test:e2e:test-env` for testing in test environment
-   - Ensure tests pass before creating pull requests
+   - Ensure all tests pass before creating pull requests
+   - Add new tests for any new functionality or bug fixes
+   - Consider edge cases in test scenarios
 
 4. **Git Workflow**:
    - Make focused, atomic commits with clear messages
@@ -44,6 +55,39 @@ I'm working on SpeedType, a web-based application for typing races similar to Ty
    - Multiple environment support (development, test, production)
    - Consistent configuration approach across frontend and backend
    - Use environment utilities for shared functionality
+
+## Issue Investigation Process
+
+Before implementing changes to fix an issue or add a feature, follow this thorough investigation process:
+
+1. **Test-Based Analysis**:
+   - Run relevant e2e tests to understand behavior and reproduce issues
+   - Review test cases in both frontend and backend to understand expected functionality
+   - Create or modify tests to demonstrate the issue
+
+2. **Code Inspection**:
+   - Examine the component hierarchy and data flow
+   - Review hooks and their dependencies
+   - Analyze event handling and state updates
+   - Check the network requests and responses
+
+3. **Contextual Understanding**:
+   - Understand how the affected components fit into the larger application
+   - Identify potential side effects of changes
+   - Review related documentation and comments
+
+4. **Root Cause Determination**:
+   - Identify the exact cause of the issue rather than just addressing symptoms
+   - Confirm the root cause through targeted testing
+   - Document findings for future reference
+
+5. **Solution Planning**:
+   - Design a solution that follows established patterns and practices
+   - Consider performance implications
+   - Plan for backward compatibility when needed
+   - Create new tests that will validate the solution
+
+This process helps ensure that changes are well-understood, targeted, and maintainable.
 
 ## Current Project State
 - Recently refactored the TypingArea component into smaller components:

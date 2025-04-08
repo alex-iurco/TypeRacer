@@ -38,12 +38,28 @@ I'm working on a web application with a React frontend and Node.js backend. The 
 - Consider using state machines for complex UI states
 
 ### Testing
-- Unit tests with Jest and React Testing Library
-- End-to-end tests with Cypress or Playwright
+- Follow Test-Driven Development (TDD) principles:
+  - Write failing tests first that define expected behavior
+  - Implement the minimum code needed to pass tests
+  - Refactor while maintaining passing tests
+- Use existing tests as documentation:
+  - Review test cases to understand expected component behavior
+  - Run relevant tests in isolation to reproduce and understand issues
+  - Use tests to map out dependencies and interactions between components
+- Comprehensive testing approach:
+  - Unit tests with Jest and React Testing Library
+  - Integration tests for component interactions
+  - End-to-end tests with Cypress or Playwright
+  - API tests for backend functionality
+- Test-first issue investigation:
+  - Analyze failing tests to understand the root cause
+  - Create new test cases that reproduce reported bugs
+  - Use debug mode in tests to step through problematic code
 - Implement integration tests for critical user flows
 - Test business logic separately from UI
 - Aim for good test coverage of core functionality
 - Run tests before creating pull requests
+- Document test scenarios in comments or test descriptions
 
 ## Git Workflow
 - Make focused, atomic commits with clear messages
@@ -62,6 +78,39 @@ I'm working on a web application with a React frontend and Node.js backend. The 
 - Use consistent configuration approach across frontend and backend
 - Document required environment variables
 - Provide sensible defaults where appropriate
+
+## Issue Investigation Process
+
+Before implementing changes to fix an issue or add a feature, follow this thorough investigation process:
+
+1. **Test-Based Analysis**:
+   - Run relevant e2e tests to understand behavior and reproduce issues
+   - Review test cases in both frontend and backend to understand expected functionality
+   - Create or modify tests to demonstrate the issue
+
+2. **Code Inspection**:
+   - Examine the component hierarchy and data flow
+   - Review hooks and their dependencies
+   - Analyze event handling and state updates
+   - Check the network requests and responses
+
+3. **Contextual Understanding**:
+   - Understand how the affected components fit into the larger application
+   - Identify potential side effects of changes
+   - Review related documentation and comments
+
+4. **Root Cause Determination**:
+   - Identify the exact cause of the issue rather than just addressing symptoms
+   - Confirm the root cause through targeted testing
+   - Document findings for future reference
+
+5. **Solution Planning**:
+   - Design a solution that follows established patterns and practices
+   - Consider performance implications
+   - Plan for backward compatibility when needed
+   - Create new tests that will validate the solution
+
+This process helps ensure that changes are well-understood, targeted, and maintainable.
 
 ## Recent Work Summary
 - [Component/feature] has been refactored:

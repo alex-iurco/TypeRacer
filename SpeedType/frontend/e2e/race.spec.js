@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file is being replaced by singlePlayer.spec.ts
+ * Please use the new consolidated test files instead.
+ * This file will be removed in a future update.
+ */
+
 import { test, expect } from '@playwright/test';
 
 test('race initialization and countdown', async ({ page }) => {

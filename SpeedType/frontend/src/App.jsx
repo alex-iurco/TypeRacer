@@ -495,24 +495,35 @@ function App({ initialMultiplayer = false }) {
     window.history.pushState({}, '', '/');
   };
 
-  const handleTypingProgress = (progress, currentInput, wpm) => {
-    if (raceState !== 'racing' && raceState !== 'finished') return;
-    if (raceState === 'finished') return; // Don't process updates if race is finished
+  // Callback for TypingArea to update App's WPM state
+  const handleWpmUpdate = useCallback((newWpm) => {
+    // console.log(`App: Received WPM update: ${newWpm}`);
+    if (raceState === 'racing') { // Only update if racing
+      setMyWpm(newWpm);
+    }
+  }, [raceState]); // Dependency on raceState prevents updates after finish
+
+  const handleTypingProgress = (progress, currentInput) => {
+    if (raceState !== 'racing') return; // Only process during the race
 
     setTypedText(currentInput);
-    
-    // Update our local state
     setMyProgress(progress);
-    setMyWpm(wpm);
     
-    // Update our racer in the list
+    // WPM is now updated via handleWpmUpdate
+    
+    // Update our racer in the list - This now uses the updated myWpm state
     setRacers(currentRacers => {
       const otherRacers = currentRacers.filter(r => r.id !== socket.id);
+      const currentMe = currentRacers.find(r => r.id === socket.id);
       const me = { 
-        ...currentRacers.find(r => r.id === socket.id),
+        ...currentMe,
         progress,
-        wpm: wpm > 0 ? wpm : lastWpmRef.current // Use last WPM if current is 0
+        // Use App component's myWpm state, which is updated by the hook's interval
+        wpm: myWpm > 0 ? myWpm : (currentMe?.wpm || 0) // Fallback to existing racer wpm if myWpm is 0
       };
+      // Use lastWpmRef to store the last *sent* non-zero WPM for debouncing socket emits
+      const wpmToSend = me.wpm > 0 ? me.wpm : lastWpmRef.current;
+      
       return [...otherRacers, me];
     });
     
@@ -523,24 +534,24 @@ function App({ initialMultiplayer = false }) {
       socket.emit('progress_update', { progress });
     }
     
-    // Send WPM update only on significant changes
-    if (Math.abs(wpm - lastWpmRef.current) >= 5 || wpm > 0) {
+    // WPM to use for debouncing socket emit - use component state myWpm or fallback
+    const currentValidWpm = myWpm > 0 ? myWpm : lastWpmRef.current;
+    
+    // Send WPM update only on significant changes based on currentValidWpm
+    if (Math.abs(currentValidWpm - lastWpmRef.current) >= 5 || currentValidWpm > 0) {
       // Store the WPM if it's valid (non-zero)
-      if (wpm > 0) {
-        lastWpmRef.current = wpm;
+      if (currentValidWpm > 0) {
+        lastWpmRef.current = currentValidWpm;
       }
-      socket.emit('wpm_update', { wpm: wpm > 0 ? wpm : lastWpmRef.current });
+      socket.emit('wpm_update', { wpm: currentValidWpm });
     }
 
     // Check if race is complete
     if (progress >= 100) {
       socket.emit('progress_update', { progress: 100 });
       // Make sure we're sending a valid WPM value when race completes
-      if (wpm === 0 && lastWpmRef.current > 0) {
-        socket.emit('wpm_update', { wpm: lastWpmRef.current });
-      } else {
-        socket.emit('wpm_update', { wpm });
-      }
+      const finalWpmToSend = myWpm > 0 ? myWpm : lastWpmRef.current;
+      socket.emit('wpm_update', { wpm: finalWpmToSend });
       
       // Notify server that we finished
       socket.emit('race_complete');
@@ -674,6 +685,7 @@ function App({ initialMultiplayer = false }) {
               isRaceComplete={raceState === 'finished'}
               isStarted={raceState === 'racing' || countdown > 0}
               isMultiplayer={isMultiplayer}
+              onWpmUpdate={handleWpmUpdate}
             />
           </>
         )}

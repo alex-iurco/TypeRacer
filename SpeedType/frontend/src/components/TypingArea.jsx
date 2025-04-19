@@ -15,6 +15,7 @@ import CompletionResults from './CompletionResults';
 const TypingArea = ({ 
   textToType = '', 
   onProgress, 
+  onWpmUpdate,
   isMultiplayer, 
   isStarted, 
   onStart, 
@@ -49,23 +50,19 @@ const TypingArea = ({
   const {
     wpm,
     startTime,
+    updateMetrics,
     calculateWPM,
     calculateFinalWPM,
     resetWpm,
-    lastValidWpmRef,
-    lastProgressRef: wpmProgressRef
-  } = useWpmCalculation(onProgress, isStarted, isCompleted);
+    lastValidWpmRef
+  } = useWpmCalculation(isStarted, isCompleted);
 
-  // Track if we already shared the refs to avoid infinite loops
-  const refsSharedRef = useRef(false);
-
-  // Share progress ref between hooks
+  // Effect to report WPM updates upward
   useEffect(() => {
-    if (wpmProgressRef && lastProgressRef && !refsSharedRef.current) {
-      wpmProgressRef.current = lastProgressRef.current;
-      refsSharedRef.current = true;
+    if (onWpmUpdate && wpm !== undefined) {
+      onWpmUpdate(wpm);
     }
-  }, [wpmProgressRef, lastProgressRef]);
+  }, [wpm, onWpmUpdate]);
 
   // Handle input change
   const handleInputChange = (e) => {
@@ -83,52 +80,68 @@ const TypingArea = ({
       // Add current input length
       return completedWordChars + spacesCount + newInput.length;
     };
+    const currentTotalChars = getTypedChars();
 
     // Check if input matches current word
     if (checkInputMatch(newInput)) {
       setIsError(false);
       
+      // Update WPM hook with the latest char count FIRST
+      updateMetrics(currentTotalChars);
+      
       // Calculate and update progress
       const newProgress = calculateProgress(words, currentWordIndex, currentWord, newInput, isCompleted);
-      updateProgress(newProgress, newInput, wpm);
+      updateProgress(newProgress, newInput);
 
       // Check if current word is complete
       if (currentWordIndex === words.length - 1 && newInput === currentWord) {
         // Trigger completion state update via the hook FIRST
-        completeWord();
-
-        // Calculate final metrics
-        const totalChars = getTypedChars();
-        const finalWPM = calculateFinalWPM(words.length, totalChars);
+        const raceCompletedByHook = completeWord();
         
-        // Complete progress SECOND (notify parent)
-        completeProgress(newInput, finalWPM);
+        if (raceCompletedByHook) {
+          // Calculate final metrics
+          const finalTotalChars = getTypedChars();
+          const finalWPM = calculateFinalWPM(words.length, finalTotalChars);
+          
+          // Complete progress SECOND (notify parent)
+          completeProgress(newInput);
+        }
       }
     } else {
       setIsError(true);
+      // Still update metrics even on error so WPM calculation can continue
+      updateMetrics(currentTotalChars);
+      // Update progress (potentially with stale WPM, but needed for progress bar)
+      const newProgress = calculateProgress(words, currentWordIndex, currentWord, newInput, isCompleted);
+      updateProgress(newProgress, newInput);
     }
 
     // If space is pressed and input matches current word
     if (e.nativeEvent.data === ' ' && newInput.trim() === currentWord) {
+      // Get char count *before* completing word/clearing input
+      const charsIncludingCompletedWord = getTypedChars();
+      
       const raceCompletedByHook = completeWord();
       
       if (raceCompletedByHook) {
         // Race is complete - final word with space
-        // Calculate final WPM
-        const totalChars = getTypedChars();
-        const finalWPM = calculateFinalWPM(words.length, totalChars);
+        const finalWPM = calculateFinalWPM(words.length, charsIncludingCompletedWord);
         
         // Complete progress
-        completeProgress(newInput, finalWPM);
+        completeProgress(newInput);
       } else {
         // Just move to next word
         setInput('');
         
-        // Calculate progress for the completed word
-        const newProgress = calculateProgress(words, currentWordIndex + 1, '', '', false);
+        // Update WPM hook metrics *after* completing the word
+        updateMetrics(charsIncludingCompletedWord);
         
-        // Update progress
-        updateProgress(newProgress, '', wpm);
+        // Calculate progress for the completed word (using nextWordIndex)
+        const nextWordIndex = currentWordIndex + 1;
+        const newProgress = calculateProgress(words, nextWordIndex, '', '', false);
+        
+        // Update progress (pass current wpm state from hook)
+        updateProgress(newProgress, '');
       }
     }
   };
@@ -185,6 +198,7 @@ const TypingArea = ({
 TypingArea.propTypes = {
   textToType: PropTypes.string,
   onProgress: PropTypes.func.isRequired,
+  onWpmUpdate: PropTypes.func.isRequired,
   isMultiplayer: PropTypes.bool,
   isStarted: PropTypes.bool,
   onStart: PropTypes.func,
@@ -196,6 +210,7 @@ TypingArea.defaultProps = {
   isMultiplayer: false,
   isStarted: false,
   onStart: () => {},
+  onWpmUpdate: () => {},
   isRaceComplete: false
 };
 

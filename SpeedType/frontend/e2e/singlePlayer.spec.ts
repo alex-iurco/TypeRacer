@@ -115,7 +115,7 @@ test.describe('Single Player Mode', () => {
     await page.screenshot({ path: 'test-results/initialization-race-started.png' });
     
     // Verify expected console logs
-    const hasRaceStartedLog = logs.some(log => log.includes('Race started:'));
+    const hasRaceStartedLog = logs.some(log => log.includes('Race starting, resetting state'));
     expect(hasRaceStartedLog).toBeTruthy();
   });
 
@@ -239,5 +239,78 @@ test.describe('Single Player Mode', () => {
     // Wait for race completion
     await page.waitForSelector('.race-complete', { state: 'visible', timeout: 10000 });
     console.log('Race with custom text completed');
+  });
+
+  test('debug: observe live WPM and Progress during race', async ({ page }) => {
+    // --- 1. Start Race --- 
+    console.log('--- Starting Race for Debugging --- ');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    try {
+      const connectionStatus = page.locator('.connection-status');
+      await connectionStatus.waitFor({ state: 'visible', timeout: 30000 });
+      await page.waitForFunction(() => {
+        const status = document.querySelector('.connection-status');
+        return status && status.textContent === 'Connected';
+      }, { timeout: 10000 });
+      console.log('Connection verified.');
+    } catch (error) {
+      console.error('Failed to verify socket connection');
+      await page.screenshot({ path: 'debug-test-connection-failure.png' });
+      throw error;
+    }
+    
+    const singlePlayerButton = page.getByText('Start Single Player Race');
+    await singlePlayerButton.waitFor({ state: 'visible' });
+    await singlePlayerButton.click();
+    console.log('Single player button clicked');
+    
+    const countdown = page.locator('.countdown-overlay');
+    await countdown.waitFor({ state: 'visible' });
+    console.log('Countdown visible');
+    await page.waitForTimeout(5000); // Wait for countdown
+    
+    await page.waitForFunction(() => {
+      const raceTrack = document.querySelector('.race-track');
+      return raceTrack && raceTrack.getAttribute('data-race-state') === 'racing';
+    }, { timeout: 15000 });
+    console.log('Race state is "racing"');
+
+    await page.waitForFunction(() => {
+      const textDisplay = document.querySelector('.text-display');
+      return textDisplay && textDisplay.textContent && textDisplay.textContent.length > 0;
+    }, { timeout: 10000 });
+    const text = await page.evaluate(() => document.querySelector('.text-display')?.textContent || '');
+    console.log('Text to type acquired:', text);
+    expect(text.length).toBeGreaterThan(0);
+
+    // --- 2. Type and Log --- 
+    const input = page.locator('.typing-input');
+    await input.waitFor({ state: 'visible' });
+    console.log('Typing input visible');
+
+    const wpmSelector = '.race-track .car-lane >> nth=0 >> .wpm-display'; // Target first racer's WPM
+    const progressSelector = '.race-track .car-lane >> nth=0 >> .progress-display'; // Target first racer's Progress
+
+    console.log('--- Starting Typing and Logging --- ');
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      await input.type(char, { delay: 50 }); // Small delay for observation
+
+      // Log status every 5 characters
+      if ((i + 1) % 5 === 0 || i === text.length - 1) {
+        const currentWpmText = await page.locator(wpmSelector).textContent() || 'N/A';
+        const currentProgressText = await page.locator(progressSelector).textContent() || 'N/A';
+        console.log(`Char ${i + 1}/${text.length}: WPM Display="${currentWpmText}", Progress Display="${currentProgressText}"`);
+      }
+    }
+
+    console.log('--- Typing Complete --- ');
+
+    // --- 3. Final Check (Optional) ---
+    await page.waitForSelector('.race-complete', { state: 'visible', timeout: 15000 });
+    const finalWpmText = await page.locator('.race-complete .wpm-display').textContent();
+    console.log(`Final WPM displayed in completion screen: ${finalWpmText}`);
+
+    // No assertions for now, just observation
   });
 }); 

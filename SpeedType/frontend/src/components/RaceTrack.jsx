@@ -97,7 +97,7 @@ function RaceTrack({ racers, onReady, isReady, countdown, raceState }) {
                   <span className="racer-name">{racer.name || `Player ${index + 1}`}</span>
                   <span className="racer-stats">
                     <span className="wpm-display">{getSafeWpm(racer)} WPM</span>
-                    <span className="progress-display">{Math.round(racer.progress || 0)}%</span>
+                    <span className="progress-display">{Math.round(safeProgress)}%</span>
                     {racer.progress >= 100 && (
                       <span className="place-display">{getPlace(racer)}</span>
                     )}

@@ -23,17 +23,20 @@ const useProgressCalculation = (onProgress) => {
     if (isCompleted) return 100;
     
     const fullText = words.join(' ');
-    
-    // Calculate total characters in completed words including spaces
-    const completedWords = words.slice(0, currentWordIndex);
-    let totalCorrectChars = completedWords.join(' ').length;
+    const totalChars = fullText.length;
+    let totalCorrectChars = 0;
+
     if (currentWordIndex > 0) {
-      // Add space for each completed word except the last one
-      totalCorrectChars += 1;
+        // Calculate length of all completed words + spaces BETWEEN them
+        const completedWordsBlock = words.slice(0, currentWordIndex).join(' ');
+        totalCorrectChars = completedWordsBlock.length;
+        // Add the single space AFTER the completed block
+        totalCorrectChars += 1;
     }
     
-    // Add correct characters from current word
-    if (input) {
+    // If we are calculating progress for the current word (input is not empty)
+    // Add correctly typed characters from the CURRENT word
+    if (input && currentWord) { // Added check for currentWord
       for (let i = 0; i < input.length && i < currentWord.length; i++) {
         if (input[i] === currentWord[i]) {
           totalCorrectChars++;
@@ -42,10 +45,11 @@ const useProgressCalculation = (onProgress) => {
         }
       }
     }
+    // If input is empty, totalCorrectChars remains just the length of completed words + spaces
     
     // Calculate progress percentage based on total characters including spaces
-    const totalChars = fullText.length;
-    const progressPercent = Math.min(100, Math.round((totalCorrectChars / totalChars) * 100));
+    // Added check for totalChars > 0 to prevent NaN
+    const progressPercent = totalChars > 0 ? Math.min(100, Math.round((totalCorrectChars / totalChars) * 100)) : 0;
     return progressPercent;
   };
   
@@ -53,16 +57,15 @@ const useProgressCalculation = (onProgress) => {
    * Update progress and trigger the onProgress callback if significant change
    * @param {number} newProgress - New progress value
    * @param {string} input - Current input
-   * @param {number} wpm - Current WPM
    */
-  const updateProgress = useCallback((newProgress, input, wpm) => {
+  const updateProgress = useCallback((newProgress, input) => {
     setProgress(newProgress);
     
     // Only emit progress update on significant progress change (at least 1%)
     if (Math.abs(newProgress - lastProgressRef.current) >= 1) {
       lastProgressRef.current = newProgress;
       if (onProgress) {
-        onProgress(newProgress, input, wpm);
+        onProgress(newProgress, input);
       }
     }
   }, [onProgress]);
@@ -70,14 +73,13 @@ const useProgressCalculation = (onProgress) => {
   /**
    * Set progress to 100% (completed)
    * @param {string} input - Final input
-   * @param {number} wpm - Final WPM
    */
-  const completeProgress = useCallback((input, wpm) => {
+  const completeProgress = useCallback((input) => {
     const finalProgress = 100;
     setProgress(finalProgress);
     lastProgressRef.current = finalProgress;
     if (onProgress) {
-      onProgress(finalProgress, input, wpm);
+      onProgress(finalProgress, input);
     }
   }, [onProgress]);
   

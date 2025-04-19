@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 /**
  * Custom hook to calculate and manage typing progress
@@ -55,7 +55,7 @@ const useProgressCalculation = (onProgress) => {
    * @param {string} input - Current input
    * @param {number} wpm - Current WPM
    */
-  const updateProgress = (newProgress, input, wpm) => {
+  const updateProgress = useCallback((newProgress, input, wpm) => {
     setProgress(newProgress);
     
     // Only emit progress update on significant progress change (at least 1%)
@@ -65,21 +65,21 @@ const useProgressCalculation = (onProgress) => {
         onProgress(newProgress, input, wpm);
       }
     }
-  };
+  }, [onProgress]);
   
   /**
    * Set progress to 100% (completed)
    * @param {string} input - Final input
    * @param {number} wpm - Final WPM
    */
-  const completeProgress = (input, wpm) => {
+  const completeProgress = useCallback((input, wpm) => {
     const finalProgress = 100;
     setProgress(finalProgress);
     lastProgressRef.current = finalProgress;
     if (onProgress) {
       onProgress(finalProgress, input, wpm);
     }
-  };
+  }, [onProgress]);
   
   /**
    * Reset progress to 0

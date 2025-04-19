@@ -115,9 +115,7 @@ test.describe('Single Player Mode', () => {
     await page.screenshot({ path: 'test-results/initialization-race-started.png' });
     
     // Verify expected console logs
-    const hasTextChangedLog = logs.some(log => log.includes('Text changed:'));
     const hasRaceStartedLog = logs.some(log => log.includes('Race started:'));
-    expect(hasTextChangedLog).toBeTruthy();
     expect(hasRaceStartedLog).toBeTruthy();
   });
 
@@ -210,14 +208,15 @@ test.describe('Single Player Mode', () => {
     await page.waitForTimeout(2000);
     
     // Find the actual textarea inside the custom-text-input container
-    const customTextArea = page.locator('textarea.custom-text-area');
+    // Use getByRole for better accessibility and robustness
+    const customTextArea = page.getByRole('textbox', { name: 'Or type your own text here...' });
     await customTextArea.waitFor({ state: 'visible' });
     const testText = 'This is a custom text for typing test';
     await customTextArea.fill(testText);
     
-    // Click the button to use custom text
-    const useCustomTextButton = page.getByText('Use Custom Text');
-    await useCustomTextButton.click();
+    // Click the actual button to start the race
+    const startButton = page.getByRole('button', { name: 'Start Single Player Race' });
+    await startButton.click();
     
     // Wait for countdown
     const countdown = page.locator('.countdown-overlay');

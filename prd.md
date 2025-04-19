@@ -198,61 +198,53 @@ Current Version: v1.0.1
 This method hosts the frontend on GitHub Pages and the backend on Railway, providing a robust production environment.
 
 1. Backend Deployment to Railway:
-   - The backend is automatically deployed to Railway on push to main branch
-   - Configuration is managed through `railway.toml`:
-     ```toml
-     [build]
-     builder = "NIXPACKS"
-     buildCommand = "npm install"
-
-     [deploy]
-     startCommand = "node server.js"
-     healthcheckPath = "/"
-     healthcheckTimeout = 100
-     restartPolicyType = "ON_FAILURE"
-     restartPolicyMaxRetries = 3
-
-     [service]
-     name = "speedtype-backend"
-     port = 3001
-     ```
-   - GitHub Actions workflow handles automatic deployments
-   - Environment variables are managed in Railway dashboard
+   - The backend is automatically deployed to Railway on push to the `main` branch *if* changes are detected within the `SpeedType/backend/` directory or the `railway-deploy.yml` workflow file.
+   - This is handled by the `.github/workflows/railway-deploy.yml` GitHub Actions workflow.
+   - Configuration is managed through `railway.toml`.
+   - Environment variables are managed in the Railway dashboard.
 
 2. Frontend Deployment to GitHub Pages:
-   ```bash
-   cd SpeedType/frontend
-   # Frontend is configured to use Railway backend URL
-   npm run deploy
-   ```
-   - Deployment is configured in `package.json` using gh-pages
-   - Custom domain setup in `public/CNAME`
-   - Base URL configured in `vite.config.js`
+   - The frontend is automatically deployed to GitHub Pages by the `.github/workflows/deploy.yml` GitHub Actions workflow.
+   - This workflow triggers on pushes to the `main` branch affecting `SpeedType/frontend/` or the workflow file itself, and also upon successful completion of the "Version Bump" workflow.
+   - It uses the official GitHub Actions for Pages (`actions/configure-pages`, `actions/upload-pages-artifact`, `actions/deploy-pages`).
+   - The workflow builds the frontend (`npm run build` in `SpeedType/frontend`), uploads the `dist` directory as an artifact, and deploys it.
+   - It automatically creates the `CNAME` file required for the custom domain (`speedtype.robocat.ai`) during the build process.
+   - Base URL configuration is handled within `vite.config.js`.
 
-3. Production URLs:
+3. Version Bumping:
+   - Versioning is managed by the `.github/workflows/version-bump.yml` GitHub Actions workflow.
+   - **Triggers:**
+     - Manually via the GitHub Actions UI (`workflow_dispatch`), allowing selection of `patch`, `minor`, or `major`.
+     - Automatically on pushes to `main` that include changes to frontend or backend source files (`src` directories), but only if at least 3 such "significant" commits have occurred since the last version bump. This prevents bumping on every small commit.
+   - **Actions:**
+     - Determines the appropriate bump type (manual input or based on commit messages: `feat:` for minor, `BREAKING CHANGE` or `!:` for major, `patch` default).
+     - Updates the `version` in `SpeedType/frontend/package.json`.
+     - Updates the `APP_VERSION` constant in `SpeedType/frontend/src/config/version.js`.
+     - Commits these changes with the message `chore: bump version to X.Y.Z [skip ci]`.
+     - Creates a Git tag `vX.Y.Z`.
+     - Pushes the commit and tag to the `main` branch.
+   - **Note:** The completion of this workflow triggers the `deploy.yml` workflow to ensure the newly versioned code is deployed.
+
+4. Production URLs:
    - Frontend: https://speedtype.robocat.ai
    - Backend: https://speedtype-backend-production.up.railway.app
 
-4. Security and Configuration:
+5. Security and Configuration:
    - CORS settings configured for production domains
    - Secure WebSocket connections (WSS) enabled
    - Environment variables used for sensitive configurations
    - Regular security updates and monitoring
    - Custom domain with SSL/HTTPS support
 
-5. Monitoring and Maintenance:
+6. Monitoring and Maintenance:
    - Railway provides built-in monitoring and logs
    - GitHub Actions shows deployment status
    - Version number displayed in UI for tracking updates
    - Automatic restarts on failure configured in Railway
 
-6. Rollback Procedure:
-   - Railway supports instant rollbacks to previous deployments
-   - Frontend can be rolled back using git:
-     ```bash
-     git checkout <previous_commit>
-     npm run deploy
-     ```
+7. Rollback Procedure:
+   - Railway supports instant rollbacks to previous backend deployments via its dashboard.
+   - Frontend rollbacks involve reverting the relevant commit on the `main` branch and allowing the `deploy.yml` workflow to redeploy the older version, or manually triggering a deployment workflow run from a specific commit hash via the GitHub Actions UI.
 
 ## 5. User Journey
 

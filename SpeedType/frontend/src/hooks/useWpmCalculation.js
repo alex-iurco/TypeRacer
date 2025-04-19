@@ -55,13 +55,6 @@ const useWpmCalculation = (onProgress, isStarted, isCompleted) => {
       }
     }, 1000);
 
-    // Init with first calculation
-    const initialWPM = calculateWPM();
-    setWpm(initialWPM);
-    if (lastProgressRef.current !== null && onProgress) {
-      onProgress(lastProgressRef.current, '', initialWPM);
-    }
-
     return () => clearInterval(interval);
   }, [isStarted, isCompleted, startTime, onProgress]);
   

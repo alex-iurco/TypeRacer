@@ -534,7 +534,6 @@ function App({ initialMultiplayer = false }) {
 
     // Check if race is complete
     if (progress >= 100) {
-      setRaceState('finished');
       socket.emit('progress_update', { progress: 100 });
       // Make sure we're sending a valid WPM value when race completes
       if (wpm === 0 && lastWpmRef.current > 0) {

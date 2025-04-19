@@ -28,7 +28,6 @@ const TypingArea = ({
     isError,
     setIsError,
     isCompleted,
-    setIsCompleted,
     words,
     currentWord,
     checkInputMatch,
@@ -68,20 +67,6 @@ const TypingArea = ({
     }
   }, [wpmProgressRef, lastProgressRef]);
 
-  // Update wpmProgressRef when lastProgressRef changes significantly
-  useEffect(() => {
-    if (wpmProgressRef && lastProgressRef && refsSharedRef.current) {
-      wpmProgressRef.current = lastProgressRef.current;
-    }
-  }, [progress, wpmProgressRef, lastProgressRef]);
-
-  // Reset when race is complete from external signal
-  useEffect(() => {
-    if (isRaceComplete) {
-      setIsCompleted(true);
-    }
-  }, [isRaceComplete, setIsCompleted]);
-
   // Handle input change
   const handleInputChange = (e) => {
     if (!isStarted || isCompleted || !textToType) return;
@@ -109,13 +94,14 @@ const TypingArea = ({
 
       // Check if current word is complete
       if (currentWordIndex === words.length - 1 && newInput === currentWord) {
-        setIsCompleted(true);
-        
+        // Trigger completion state update via the hook FIRST
+        completeWord();
+
         // Calculate final metrics
         const totalChars = getTypedChars();
         const finalWPM = calculateFinalWPM(words.length, totalChars);
         
-        // Complete progress
+        // Complete progress SECOND (notify parent)
         completeProgress(newInput, finalWPM);
       }
     } else {
@@ -124,12 +110,10 @@ const TypingArea = ({
 
     // If space is pressed and input matches current word
     if (e.nativeEvent.data === ' ' && newInput.trim() === currentWord) {
-      const raceCompleted = completeWord();
+      const raceCompletedByHook = completeWord();
       
-      if (raceCompleted) {
+      if (raceCompletedByHook) {
         // Race is complete - final word with space
-        setIsCompleted(true);
-        
         // Calculate final WPM
         const totalChars = getTypedChars();
         const finalWPM = calculateFinalWPM(words.length, totalChars);

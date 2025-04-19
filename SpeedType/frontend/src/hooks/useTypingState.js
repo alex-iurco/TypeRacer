@@ -21,14 +21,17 @@ const useTypingState = (textToType) => {
   
   // Update text ref when text changes
   useEffect(() => {
-    console.log('Text changed:', textToType);
-    textRef.current = textToType;
-    
-    // Reset state when text changes
-    setInput('');
-    setCurrentWordIndex(0);
-    setIsError(false);
-    setIsCompleted(false);
+    // Only reset if the text actually changes
+    if (textToType !== textRef.current) {
+      console.log('Text changed:', textToType);
+      textRef.current = textToType;
+      
+      // Reset state when text changes
+      setInput('');
+      setCurrentWordIndex(0);
+      setIsError(false);
+      setIsCompleted(false);
+    }
   }, [textToType]);
   
   /**

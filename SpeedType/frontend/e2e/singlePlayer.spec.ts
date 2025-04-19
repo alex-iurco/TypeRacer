@@ -199,10 +199,9 @@ test.describe('Single Player Mode', () => {
     }));
     console.log('Final state:', finalState);
     
-    // Verify WPM is displayed
-    const wpmDisplay = page.locator('.wpm-display');
-    await wpmDisplay.waitFor({ state: 'visible' });
-    const wpmText = await wpmDisplay.textContent();
+    // Verify WPM is displayed - Fix for multiple elements with same class
+    // Use a more specific selector to get just one WPM display element
+    const wpmText = await page.locator('.race-complete .wpm-display').textContent();
     expect(wpmText).toMatch(/\d+\s*WPM/);
   });
 
@@ -210,8 +209,8 @@ test.describe('Single Player Mode', () => {
     // Wait for page to load
     await page.waitForTimeout(2000);
     
-    // Locate the custom text area and input some text
-    const customTextArea = page.locator('.custom-text-input');
+    // Find the actual textarea inside the custom-text-input container
+    const customTextArea = page.locator('textarea.custom-text-area');
     await customTextArea.waitFor({ state: 'visible' });
     const testText = 'This is a custom text for typing test';
     await customTextArea.fill(testText);

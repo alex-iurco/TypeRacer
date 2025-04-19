@@ -18,7 +18,9 @@
     "test:e2e:test-env": "playwright test --project=chromium",
     "test:e2e:prod": "PLAYWRIGHT_ENV=production playwright test --project=chromium",
     "test:e2e:single": "playwright test e2e/singlePlayer.spec.ts",
-    "test:e2e:single:ui": "playwright test e2e/singlePlayer.spec.ts --ui"
+    "test:e2e:single:ui": "playwright test e2e/singlePlayer.spec.ts --ui",
+    "test:e2e:single:test-env": "playwright test e2e/singlePlayer.spec.ts --project=chromium",
+    "test:e2e:single:prod": "PLAYWRIGHT_ENV=production playwright test e2e/singlePlayer.spec.ts --project=chromium"
   },
   "dependencies": {
     "prop-types": "^15.8.1",

@@ -25,9 +25,11 @@ npm run test:e2e:single
 # Run with UI for debugging
 npm run test:e2e:single:ui
 
-# Run in specific environment 
-npm run test:e2e:test-env -- e2e/singlePlayer.spec.ts
-npm run test:e2e:prod -- e2e/singlePlayer.spec.ts
+# Run in test environment 
+npm run test:e2e:single:test-env
+
+# Run in production environment
+npm run test:e2e:single:prod
 ```
 
 ### All Tests
@@ -38,6 +40,12 @@ npm run test:e2e
 
 # Run all tests with UI
 npm run test:e2e:ui
+
+# Run all tests in test environment
+npm run test:e2e:test-env
+
+# Run all tests in production environment
+npm run test:e2e:prod
 ```
 
 ## Test Structure
@@ -76,6 +84,7 @@ If tests fail, look for screenshots in the `test-results` directory:
    - Prefer data attributes for test selectors
    - Fall back to class names when necessary
    - Avoid using text content for selection when possible
+   - Use specific selectors to avoid ambiguity (e.g., '.race-complete .wpm-display' instead of just '.wpm-display')
 
 3. **Assertions**
    - Use explicit assertions with `expect()`

@@ -107,17 +107,23 @@ router.get('/health', (req, res) => {
 router.get('/quotes', async (req, res) => {
   console.log("Received request for /api/quotes (implemented in src/server.ts)"); // Updated log
 
-  if (!enableAiQuotes) {
-    console.log("AI Quotes disabled (either by config or missing API key).");
+  // Check the environment variable dynamically for *this* request
+  const isAiEnabledForThisRequest = process.env.ENABLE_AI_QUOTES?.toLowerCase() === 'true';
+
+  if (!isAiEnabledForThisRequest) {
+    console.log("AI Quotes disabled by config for this request.");
     return res.status(503).json({ error: 'AI quote generation is disabled.' });
   }
 
-  // Should not happen if enableAiQuotes is true, but safeguard
+  // If enabled, *then* check if the client was actually initialized (API key present at startup)
+  // The global 'anthropic' constant holds the initialized client or null
   if (!anthropic) {
-      console.error("Programming Error: AI Quotes enabled but Anthropic client is not initialized.");
+      console.error("AI Quotes enabled by config, but Anthropic client not initialized (missing API key).");
+      // Return 500 because it's a server config issue, not just 'disabled'
       return res.status(500).json({ error: 'AI service configuration error.' });
   }
 
+  // Since AI is enabled for this request and anthropic client exists, proceed...
   const prompt = `Generate 6 distinct paragraphs suitable for a typing speed test.
 Each paragraph should be between 150 and 300 characters long.
 The tone should be generally neutral or inspirational.

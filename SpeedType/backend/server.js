@@ -2,6 +2,26 @@ const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
+const Anthropic = require('@anthropic-ai/sdk');
+
+// Load environment variables from .env file
+require('dotenv').config();
+
+// --- Anthropic Client Setup ---
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+if (!anthropicApiKey && process.env.ENABLE_AI_QUOTES?.toLowerCase() === 'true') {
+  // Only throw error if AI quotes are explicitly enabled but no key is found
+  throw new Error("ANTHROPIC_API_KEY is required because ENABLE_AI_QUOTES is true, but it was not found in environment variables.");
+} else if (!anthropicApiKey) {
+    console.warn("ANTHROPIC_API_KEY not found. AI quote generation is disabled.");
+}
+
+const anthropic = anthropicApiKey ? new Anthropic({ apiKey: anthropicApiKey }) : null;
+const enableAiQuotes = process.env.ENABLE_AI_QUOTES?.toLowerCase() === 'true' && !!anthropic; // Ensure key exists if enabled
+
+console.log(`AI Quote Generation Enabled: ${enableAiQuotes}`);
+// --- End Anthropic Client Setup ---
+
 
 // Updated server configuration with improved error handling
 const app = express();
@@ -31,13 +51,106 @@ let rooms = {}; // Store room data { roomId: { text, racers: [socketIds], state 
 
 // Basic route for health check
 app.get('/', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
+  res.json({
+    status: 'healthy',
     message: 'SpeedType Backend is running!',
-    version: '1.0.1',
-    environment: process.env.NODE_ENV || 'development'
+    version: '1.0.1', // Consider updating this based on package.json or dynamically
+    environment: process.env.NODE_ENV || 'development',
+    ai_quotes_enabled: enableAiQuotes // Add status flag
   });
 });
+
+// --- New AI Quotes Endpoint ---
+app.get('/api/quotes', async (req, res) => {
+  console.log("Received request for /api/quotes");
+
+  if (!enableAiQuotes) {
+    console.log("AI Quotes disabled (either by config or missing API key).");
+    // 503 Service Unavailable is appropriate if the feature is configured off
+    // 500 Internal Server Error might be better if it's off due to missing key, but 503 is simpler for frontend
+    return res.status(503).json({ error: 'AI quote generation is disabled.' });
+  }
+
+  // We already checked if anthropic is null when setting enableAiQuotes, but double-check for safety
+  if (!anthropic) {
+      console.error("Programming Error: AI Quotes enabled but Anthropic client is not initialized.");
+      return res.status(500).json({ error: 'AI service configuration error.' });
+  }
+
+  const prompt = `Generate 6 distinct paragraphs suitable for a typing speed test.
+Each paragraph should be between 150 and 300 characters long.
+The tone should be generally neutral or inspirational.
+Avoid complex jargon or proper nouns where possible.
+IMPORTANT: Respond ONLY with a valid JSON array containing exactly 6 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.
+Example format: ["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragraph 4...", "paragraph 5...", "paragraph 6..."]`;
+
+  try {
+    console.log("Sending request to Claude API...");
+    const msg = await anthropic.messages.create({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 1800, // Estimate: 6 paras * 300 chars/para = 1800 chars. Allow some buffer. Adjust if needed.
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    // Check if content is potentially blocked
+     if (msg.stop_reason === 'max_tokens') {
+        console.warn("Claude response stopped due to max_tokens. Result might be incomplete.");
+     }
+     if (!msg.content || msg.content.length === 0 || !msg.content[0].text) {
+        console.error("Received empty or invalid content block from Claude:", msg);
+        throw new Error("Empty or invalid content received from AI service");
+     }
+
+
+    const generatedText = msg.content[0].text.trim(); // Trim whitespace
+    console.log("Received response from Claude API.");
+    // console.log("Raw Claude response:", generatedText); // Uncomment for debugging
+
+    let quotes = [];
+    try {
+      // Attempt to parse the potentially messy response as JSON
+      // First, try to find the JSON array within the response in case Claude added extra text
+      const jsonMatch = generatedText.match(/(\[.*\])/s);
+      let textToParse = generatedText;
+      if (jsonMatch && jsonMatch[1]) {
+          console.log("Attempting to parse extracted JSON array from Claude response.");
+          textToParse = jsonMatch[1];
+      } else {
+          console.log("No JSON array brackets found, attempting to parse entire Claude response.");
+      }
+
+      quotes = JSON.parse(textToParse);
+
+      // Validate the parsed structure
+      if (!Array.isArray(quotes) || quotes.length !== 6 || quotes.some(q => typeof q !== 'string' || q.trim() === '')) {
+        console.error('Invalid JSON structure after parsing Claude response:', quotes);
+        throw new Error('Invalid JSON format received from Claude API.');
+      }
+      console.log(`Successfully parsed ${quotes.length} quotes.`);
+      res.json(quotes);
+
+    } catch (parseError) {
+      console.error("Failed to parse or validate Claude response:", parseError.message);
+      console.error("Raw response was:", generatedText); // Log the raw response on parsing failure
+      // Send 500 Internal Server Error as the backend failed to process the AI response
+      res.status(500).json({ error: 'Failed to process response from AI service.' });
+    }
+
+  } catch (error) {
+    // Handle potential API errors from Anthropic SDK
+    console.error("Error calling Claude API:", error);
+     if (error instanceof Anthropic.APIError) {
+        console.error("Anthropic API Error Details:", { status: error.status, headers: error.headers, error: error.error });
+        // Map specific Anthropic errors to appropriate HTTP status codes if needed
+        res.status(error.status || 500).json({ error: `AI service error: ${error.message}` });
+    } else {
+        // Generic internal server error for other unexpected issues
+        res.status(500).json({ error: 'Failed to fetch quotes from AI service.' });
+    }
+  }
+});
+// --- End New AI Quotes Endpoint ---
+
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

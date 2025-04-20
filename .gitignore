@@ -3,7 +3,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
+# package-lock.json  <-- Keep specific ones if needed, e.g., in subdirs
 
 # Build output
 dist/
@@ -76,3 +76,4 @@ logs/
 # Local development files
 **/.local/
 **/local.log 
+SpeedType/frontend/package-lock.json

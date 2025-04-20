@@ -125,9 +125,10 @@ router.get('/quotes', async (req, res) => {
 
   // Since AI is enabled for this request and anthropic client exists, proceed...
   const prompt = `Generate 6 distinct paragraphs suitable for a typing speed test.
-Each paragraph should be between 150 and 300 characters long.
+Each paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.
 The tone should be generally neutral or inspirational.
 Avoid complex jargon or proper nouns where possible.
+Crucially, ensure NO paragraph exceeds 400 characters.
 IMPORTANT: Respond ONLY with a valid JSON array containing exactly 6 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.
 Example format: ["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragraph 4...", "paragraph 5...", "paragraph 6..."]`;
 

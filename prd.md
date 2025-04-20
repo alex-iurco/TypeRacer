@@ -48,7 +48,8 @@
   - One-click passage selection for race text
   - High-quality quotes from notable historical figures and thought leaders
   - Optimized for typing practice with varied sentence structures
-  - Local quote management for reliable performance
+  - Local quote management for reliable performance (Fallback Mechanism)
+  - Dynamic sourcing via backend API (Primary Mechanism - see 4.2.1)
   - Fisher-Yates shuffle algorithm for true randomization
 
 ### 3.3 Racing Experience
@@ -132,16 +133,44 @@
 ### 4.2 Backend Requirements
 - Real-time synchronization with <50ms latency
 - User database with secure authentication
-- Content management system for text passages
+- Content management system for text passages (Original Plan - superseded by 4.2.1)
+- Dynamic Quote Sourcing via Claude AI (Current Plan - see 4.2.1)
 - Analytics processing pipeline
 - Leaderboard and ranking systems
+
+### 4.2.1 Dynamic Quote Sourcing via Claude AI
+
+**Goal:** Enhance the variety and freshness of text passages used for typing races by dynamically fetching them from an external AI service instead of relying solely on the hardcoded fallback list in the frontend.
+
+**Mechanism:**
+
+1.  **Backend Endpoint:** Implement a new RESTful endpoint `GET /api/quotes` within the existing Express backend (`server.js`).
+2.  **AI Service Integration:** This endpoint will act as a proxy to the Anthropic Claude AI API.
+    *   **SDK:** Utilize the official `@anthropic-ai/sdk` Node.js package.
+    *   **Authentication:** Requires an `ANTHROPIC_API_KEY` environment variable configured securely (using `.env` locally with `.gitignore`, and Railway environment variables for deployment). The server should validate the presence of this key on startup.
+    *   **Model:** Target an efficient Claude model suitable for this task, such as `claude-3-haiku-20240307`.
+3.  **Prompting Strategy:**
+    *   The backend will send a carefully crafted prompt to the Claude API.
+    *   **Prompt Goals:** Request 5 distinct paragraphs suitable for typing tests (approx. 150-300 characters each), neutral or inspirational tone, avoiding complex jargon.
+    *   **Output Format:** Crucially, the prompt will instruct Claude to respond *only* with a valid JSON array containing exactly 5 strings, each representing a paragraph. Example: `["paragraph 1...", "paragraph 2...", ...]`
+4.  **Response Handling:**
+    *   The backend will receive the text response from Claude.
+    *   It will attempt to parse this text response as JSON.
+    *   Validation will ensure the result is an array containing exactly 5 non-empty strings.
+5.  **Frontend Interaction:**
+    *   If the backend successfully obtains and validates the quotes from Claude, it sends the JSON array `["quote1", "quote2", ...]` with a 200 OK status to the frontend.
+    *   The existing frontend `fetchQuotes` function in `App.jsx` will consume this array directly.
+6.  **Error Handling & Fallback:**
+    *   If any step in the backend fails (missing API key, Claude API error, timeout, parsing failure, validation failure, content moderation flags), the backend will log the specific error internally and return an appropriate HTTP error status (e.g., 500) to the frontend.
+    *   The frontend's existing `catch` block in `fetchQuotes` remains unchanged. Upon receiving an error status from `/api/quotes`, it will automatically activate the fallback mechanism, shuffling and displaying quotes from the hardcoded `fallbackQuotes` array. This ensures the application remains functional even if the AI service is unavailable.
+7.  **Caching (Optional Future Enhancement):** Consider adding backend caching for successful Claude API responses (e.g., for 5-15 minutes) to reduce costs, improve responsiveness, and mitigate the impact of brief API fluctuations.
 
 ### 4.3 Frontend Requirements
 - Responsive UI supporting multiple screen sizes
 - Smooth animations for race visualization
 - Keyboard input handling with anti-cheat measures
 - Real-time progress updates and statistics
-- Offline mode capabilities
+- Offline mode capabilities (Note: Dynamic quote fetching requires online connectivity)
 
 ### 4.4 Integration Requirements
 - Social media authentication options
@@ -156,6 +185,7 @@
 - npm package manager
 - Git for version control
 - Modern web browser (Chrome, Firefox, Safari)
+- Anthropic API Key (for dynamic quote feature)
 
 #### 4.5.2 Method 1: Local Development (Frontend + Backend)
 
@@ -168,6 +198,8 @@
    ```bash
    cd SpeedType/backend
    npm install
+   # Create .env file and add ANTHROPIC_API_KEY=your_key_here
+   # Ensure .env is in .gitignore
    node server.js  # Runs on port 3001
    ```
    You should see: "Server listening on *:3001"
@@ -176,11 +208,11 @@
    ```bash
    cd SpeedType/frontend
    npm install
-   npm run dev     # Runs on port 5173
+   npm run dev     # Runs on port 5173 (or as configured)
    ```
 
 4. Access the application:
-   - Open http://localhost:5173 in your browser
+   - Open http://localhost:5173 (or configured port) in your browser
    - Frontend will automatically connect to backend on port 3001
    - Multiple browser windows can be used to simulate multiple players
 
@@ -201,7 +233,7 @@ This method hosts the frontend on GitHub Pages and the backend on Railway, provi
    - The backend is automatically deployed to Railway on push to the `main` branch *if* changes are detected within the `SpeedType/backend/` directory or the `railway-deploy.yml` workflow file.
    - This is handled by the `.github/workflows/railway-deploy.yml` GitHub Actions workflow.
    - Configuration is managed through `railway.toml`.
-   - Environment variables are managed in the Railway dashboard.
+   - **Environment variables (including `ANTHROPIC_API_KEY`) must be managed securely in the Railway dashboard.**
 
 2. Frontend Deployment to GitHub Pages:
    - The frontend is automatically deployed to GitHub Pages by the `.github/workflows/deploy.yml` GitHub Actions workflow.
@@ -232,7 +264,7 @@ This method hosts the frontend on GitHub Pages and the backend on Railway, provi
 5. Security and Configuration:
    - CORS settings configured for production domains
    - Secure WebSocket connections (WSS) enabled
-   - Environment variables used for sensitive configurations
+   - Environment variables used for sensitive configurations (API Keys managed via hosting platform)
    - Regular security updates and monitoring
    - Custom domain with SSL/HTTPS support
 
@@ -317,7 +349,7 @@ This method hosts the frontend on GitHub Pages and the backend on Railway, provi
 - Mobile application development
 - Advanced statistics implementation
 - Social features and friend system
-- Expanded text library
+- Expanded text library (Dynamic sourcing via API)
 - Customization options
 
 ### 8.3 Phase 3 - Expansion (Months 7-12)
@@ -334,6 +366,8 @@ This method hosts the frontend on GitHub Pages and the backend on Railway, provi
   - **Mitigation:** Regional servers, optimized networking code
 - **Risk:** Cheating or automation tools
   - **Mitigation:** Pattern detection, replay analysis, reporting system
+- **Risk:** AI API Costs / Rate Limits / Availability
+  - **Mitigation:** Use efficient models (Haiku), implement backend caching, monitor usage, rely on robust frontend fallback.
 
 ### 9.2 Market Risks
 - **Risk:** Competition from established platforms
@@ -357,5 +391,16 @@ This method hosts the frontend on GitHub Pages and the backend on Railway, provi
 ### 10.3 Technical Architecture
 - System design diagram
 - Database schema
-- API documentation
-- Third-party service dependencies
+- API documentation (Placeholder - To be created)
+- Third-party service dependencies (Anthropic Claude API)
+
+## 11. Document History
+
+| Version | Date       | Author         | Changes Made                     |
+|---------|------------|----------------|----------------------------------|
+| 1.0     | 2024-03-15 | Alex Iurco     | Initial draft                    |
+| 1.1     | 2024-03-20 | Alex Iurco     | Added Feature Details            |
+| 1.2     | 2024-04-01 | Alex Iurco     | Refined Technical Requirements   |
+| 1.3     | 2024-04-10 | Alex Iurco     | Updated Deployment Section       |
+| 1.4     | 2024-04-19 | AI Assistant | Updated Deployment & Versioning |
+| 1.5     | 2024-04-20 | AI Assistant | Documented Claude AI Integration |

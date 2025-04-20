@@ -57,6 +57,9 @@ describe('GET /api/quotes', () => {
     response.body.forEach((item: any) => {
       expect(typeof item).toBe('string');
       expect(item.length).toBeGreaterThan(0); // Ensure quotes are not empty strings
+      // Add length constraint checks based on the prompt
+      expect(item.length).toBeGreaterThanOrEqual(150); // Check minimum length
+      expect(item.length).toBeLessThanOrEqual(300);  // Check maximum length
     });
   }, 15000); // Increase timeout for potential AI API latency
 

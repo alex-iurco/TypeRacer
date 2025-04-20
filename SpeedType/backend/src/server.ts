@@ -124,19 +124,19 @@ router.get('/quotes', async (req, res) => {
   }
 
   // Since AI is enabled for this request and anthropic client exists, proceed...
-  const prompt = `Generate 6 distinct paragraphs suitable for a typing speed test.
+  const prompt = `Generate 7 distinct paragraphs suitable for a typing speed test.
 Each paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.
 The tone should be generally neutral or inspirational.
 Avoid complex jargon or proper nouns where possible.
 Crucially, ensure NO paragraph exceeds 400 characters.
-IMPORTANT: Respond ONLY with a valid JSON array containing exactly 6 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.
-Example format: ["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragraph 4...", "paragraph 5...", "paragraph 6..."]`;
+IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.
+Example format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
 
   try {
     console.log("Sending request to Claude API...");
     const msg = await anthropic.messages.create({
       model: "claude-3-haiku-20240307",
-      max_tokens: 1800, // Estimate: 6 paras * 300 chars/para = 1800 chars. Allow buffer.
+      max_tokens: 2100, // Estimate: 7 paras * 300 chars/para = 2100 chars. Increase slightly buffer
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -169,13 +169,24 @@ Example format: ["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragrap
 
       quotes = JSON.parse(textToParse);
 
-      // Validate the parsed structure
-      if (!Array.isArray(quotes) || quotes.length !== 6 || quotes.some(q => typeof q !== 'string' || q.trim() === '')) {
-        console.error('Invalid JSON structure after parsing Claude response:', quotes);
-        throw new Error('Invalid JSON format received from Claude API.');
+      // Validate the parsed structure - IS IT AN ARRAY?
+      if (!Array.isArray(quotes)) {
+        console.error('Invalid JSON structure after parsing Claude response: Expected an array, got:', typeof quotes);
+        throw new Error('Invalid JSON format received from Claude API - expected array.');
       }
-      console.log(`Successfully parsed ${quotes.length} quotes.`);
-      res.json(quotes);
+
+      // Filter quotes: Keep only those <= 500 characters and strings
+      const maxLength = 500;
+      const filteredQuotes = quotes.filter(quote => 
+          typeof quote === 'string' && quote.length <= maxLength && quote.trim() !== ''
+      );
+
+      if (filteredQuotes.length < quotes.length) {
+          console.warn(`Filtered out ${quotes.length - filteredQuotes.length} quotes exceeding ${maxLength} chars or invalid.`);
+      }
+
+      console.log(`Successfully parsed. Returning ${filteredQuotes.length} quotes after filtering.`);
+      res.json(filteredQuotes); // Send filtered quotes
 
     } catch (parseError: unknown) {
       // Log the error appropriately

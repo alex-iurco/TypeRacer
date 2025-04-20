@@ -65,6 +65,8 @@ const validateConfig = (config) => {
 
 // Get current environment
 const getEnvironment = () => {
+  // console.log('[env.js] Raw VITE_NODE_ENV:', import.meta.env.VITE_NODE_ENV);
+  // console.log('[env.js] Raw MODE:', import.meta.env.MODE);
   const env = import.meta.env.VITE_NODE_ENV || import.meta.env.MODE;
   return validateMode(env, ['development', 'production', 'test'], 'development');
 };
@@ -72,7 +74,8 @@ const getEnvironment = () => {
 // Get configuration for current environment
 const getCurrentConfig = () => {
   const env = getEnvironment();
-  console.log('Current environment:', env);
+  console.log('Current environment:', env); // Keep this one maybe?
+  // console.log('[env.js] Raw VITE_BACKEND_URL from import.meta.env:', import.meta.env.VITE_BACKEND_URL);
   const config = ENV[env];
   validateConfig(config);
   return config;

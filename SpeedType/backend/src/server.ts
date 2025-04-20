@@ -259,8 +259,8 @@ io.on('connection', (socket) => {
     console.log('Client disconnected:', socket.id, 'reason:', reason);
   });
 
-  // Delegate race logic - Linter Fix: Assuming it only takes socket based on error
-  setupRaceSocket(socket);
+  // Delegate race logic - Pass io instance as defined in function signature
+  setupRaceSocket(io);
 });
 
 // Start the server if this is the main module

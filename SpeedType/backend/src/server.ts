@@ -12,9 +12,10 @@ dotenv.config();
 // --- Configuration ---
 const PORT = process.env.PORT || 3001;
 const AI_QUOTE_CACHE_MINUTES = parseInt(process.env.AI_QUOTE_CACHE_MINUTES || '10', 10);
+const AI_QUOTE_MIN_REQUESTS_BEFORE_REFRESH = parseInt(process.env.AI_QUOTE_MIN_REQUESTS_BEFORE_REFRESH || '10', 10);
 const CACHE_DURATION_MS = AI_QUOTE_CACHE_MINUTES * 60 * 1000;
 // Refresh slightly before cache expires (e.g., 1 minute before)
-const REFRESH_INTERVAL_MS = Math.max(60 * 1000, CACHE_DURATION_MS - (60 * 1000)); 
+const CHECK_INTERVAL_MS = Math.max(60 * 1000, CACHE_DURATION_MS - (60 * 1000)); 
 
 // --- Anthropic Client Setup ---
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
@@ -35,12 +36,15 @@ console.log(`AI Quote Generation Globally Enabled: ${isAiGloballyEnabled}`);
 console.log(`Anthropic Client Initialized: ${!!anthropic}`);
 console.log(`AI Quotes Feature Active: ${canUseAiQuotes}`);
 console.log(`AI Quote Cache Duration: ${AI_QUOTE_CACHE_MINUTES} minutes`);
-console.log(`AI Quote Refresh Interval: ${REFRESH_INTERVAL_MS / 1000 / 60} minutes`);
+console.log(`AI Quote Min Requests Before Refresh: ${AI_QUOTE_MIN_REQUESTS_BEFORE_REFRESH}`);
+console.log(`AI Quote Refresh Check Interval: ${CHECK_INTERVAL_MS / 1000 / 60} minutes`);
 // --- End Anthropic Client Setup ---
 
 // --- Quote Cache ---
 let cachedQuotes: string[] = [];
 let cacheRefreshTimer: NodeJS.Timeout | null = null;
+let cacheLastRefreshedTimestamp: number = 0; // Timestamp of last successful refresh
+let cacheRequestCounter: number = 0; // Counter for requests since last refresh
 
 async function refreshQuotesCache() {
   if (!canUseAiQuotes) {
@@ -114,7 +118,9 @@ Example format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
 
       if (finalQuotes.length > 0) {
           cachedQuotes = finalQuotes; // Update the cache
-          console.log(`[Cache Refresh] Successfully refreshed cache with ${cachedQuotes.length} quotes.`);
+          cacheLastRefreshedTimestamp = Date.now(); // Update timestamp
+          cacheRequestCounter = 0; // Reset counter
+          console.log(`[Cache Refresh] Successfully refreshed cache with ${cachedQuotes.length} quotes. Counter reset.`);
       } else {
           console.warn('[Cache Refresh] Refresh resulted in 0 valid quotes. Cache not updated.');
           // Optionally keep stale cache here instead of clearing it? For now, cache remains unchanged.
@@ -135,6 +141,25 @@ Example format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
     // Don't update cache on API error
   }
 }
+
+// Function to check conditions and trigger refresh if needed
+async function checkAndRefreshCache() {
+  if (!canUseAiQuotes) return; // Don't check if AI is off
+
+  const now = Date.now();
+  const timeExpired = (now - cacheLastRefreshedTimestamp) >= CACHE_DURATION_MS;
+  const requestThresholdMet = cacheRequestCounter >= AI_QUOTE_MIN_REQUESTS_BEFORE_REFRESH;
+
+  console.log(`[Cache Check] Time Expired: ${timeExpired}, Request Count: ${cacheRequestCounter}/${AI_QUOTE_MIN_REQUESTS_BEFORE_REFRESH}`);
+
+  if (timeExpired && requestThresholdMet) {
+    console.log('[Cache Check] Conditions met, triggering background refresh.');
+    await refreshQuotesCache();
+  } else {
+    console.log('[Cache Check] Conditions not met, skipping background refresh.');
+  }
+}
+
 // --- End Quote Cache ---
 
 
@@ -190,7 +215,9 @@ router.get('/', (req, res) => {
     version: '1.0.1', // Consider updating this
     environment: process.env.NODE_ENV || 'development',
     ai_quotes_enabled: canUseAiQuotes, // Use the derived status flag
-    cache_status: cachedQuotes.length > 0 ? `${cachedQuotes.length} quotes cached` : 'Cache empty'
+    cache_status: cachedQuotes.length > 0 
+      ? `${cachedQuotes.length} quotes cached (Requests: ${cacheRequestCounter}, Last Refresh: ${new Date(cacheLastRefreshedTimestamp).toISOString()})` 
+      : 'Cache empty'
   });
 });
 
@@ -214,6 +241,10 @@ router.get('/quotes', async (req, res) => {
     // Maybe return fallback quotes here instead of error? For now, error.
     return res.status(503).json({ error: 'AI quote generation is disabled.' });
   }
+
+  // Increment request counter *before* checking cache
+  cacheRequestCounter++;
+  console.log(`Quote request count since last refresh: ${cacheRequestCounter}`);
 
   // If AI is active, check cache first
   if (cachedQuotes.length > 0) {
@@ -273,9 +304,11 @@ if (require.main === module) {
   
   const startServer = async () => {
     // Initial Cache Population
+    cacheLastRefreshedTimestamp = 0; // Ensure first check triggers refresh if needed
+    cacheRequestCounter = 0;
     if (canUseAiQuotes) {
         console.log("Performing initial AI quote cache population...");
-        await refreshQuotesCache();
+        await refreshQuotesCache(); // This will now set timestamp and reset counter on success
         if (cachedQuotes.length > 0) {
             console.log(`Initial cache populated with ${cachedQuotes.length} quotes.`);
         } else {
@@ -293,17 +326,16 @@ if (require.main === module) {
       console.log('Environment:', process.env.NODE_ENV || 'development');
       console.log(`AI Quotes Feature Active: ${canUseAiQuotes}`); // Reiterate status
 
-      // Start Background Cache Refresh Interval (only if AI is active)
-      if (canUseAiQuotes && REFRESH_INTERVAL_MS > 0) {
-          console.log(`Starting background cache refresh interval (${REFRESH_INTERVAL_MS / 1000 / 60} minutes)...`);
-          // Clear existing timer just in case
+      // Start Background Cache Refresh Check Interval
+      if (canUseAiQuotes && CHECK_INTERVAL_MS > 0) {
+          console.log(`Starting background cache refresh check interval (${CHECK_INTERVAL_MS / 1000 / 60} minutes)...`);
           if (cacheRefreshTimer) clearInterval(cacheRefreshTimer); 
           
           cacheRefreshTimer = setInterval(async () => {
-              await refreshQuotesCache();
-          }, REFRESH_INTERVAL_MS);
+              await checkAndRefreshCache(); // Call the check function
+          }, CHECK_INTERVAL_MS); // Use CHECK_INTERVAL_MS
       } else {
-          console.log("Background cache refresh disabled (AI not active or interval <= 0).");
+          console.log("Background cache refresh check disabled (AI not active or interval <= 0).");
       }
     });
   };

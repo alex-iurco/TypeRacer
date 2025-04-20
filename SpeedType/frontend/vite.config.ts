@@ -45,16 +45,6 @@ export default defineConfig(({ command, mode }) => {
           main: './index.html'
         }
       }
-    },
-    define: {
-      'import.meta.env.VITE_NODE_ENV': JSON.stringify(process.env.VITE_NODE_ENV || 'production'),
-      'import.meta.env.VITE_BACKEND_URL': JSON.stringify(process.env.VITE_BACKEND_URL || 'https://speedtype-backend-production.up.railway.app'),
-      'import.meta.env.VITE_SOCKET_TIMEOUT': JSON.stringify(process.env.VITE_SOCKET_TIMEOUT || 5000),
-      'import.meta.env.VITE_RETRY_DELAY': JSON.stringify(process.env.VITE_RETRY_DELAY || 1000),
-      'import.meta.env.VITE_RECONNECTION_ATTEMPTS': JSON.stringify(process.env.VITE_RECONNECTION_ATTEMPTS || 5),
-      'import.meta.env.VITE_SOCKET_TRANSPORTS': JSON.stringify(process.env.VITE_SOCKET_TRANSPORTS || '["websocket","polling"]'),
-      'import.meta.env.VITE_SOCKET_AUTO_CONNECT': JSON.stringify(process.env.VITE_SOCKET_AUTO_CONNECT || true),
-      'import.meta.env.VITE_SOCKET_RECONNECTION': JSON.stringify(process.env.VITE_SOCKET_RECONNECTION || true),
     }
   };
 }); 

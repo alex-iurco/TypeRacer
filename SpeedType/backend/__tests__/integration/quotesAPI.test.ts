@@ -55,7 +55,7 @@ describe('GET /api/quotes', () => {
     expect(response.body).toBeInstanceOf(Array);
     // Check if the number of quotes is between 0 and 7 (inclusive)
     expect(response.body.length).toBeGreaterThanOrEqual(0);
-    expect(response.body.length).toBeLessThanOrEqual(7);
+    expect(response.body.length).toBeLessThanOrEqual(6); // Expect 0 to 6 quotes
 
     // Check each returned quote
     response.body.forEach((item: any) => {

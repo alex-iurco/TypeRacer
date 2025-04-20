@@ -185,8 +185,24 @@ Example format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
           console.warn(`Filtered out ${quotes.length - filteredQuotes.length} quotes exceeding ${maxLength} chars or invalid.`);
       }
 
-      console.log(`Successfully parsed. Returning ${filteredQuotes.length} quotes after filtering.`);
-      res.json(filteredQuotes); // Send filtered quotes
+      // Select final quotes: Aim for 6, take fewer if necessary
+      let finalQuotes = [];
+      if (filteredQuotes.length >= 6) {
+          // Shuffle the filtered array (Fisher-Yates shuffle)
+          const shuffled = [...filteredQuotes]; // Create a copy
+          for (let i = shuffled.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+          finalQuotes = shuffled.slice(0, 6); // Take the first 6
+          console.log(`Selected 6 random quotes from ${filteredQuotes.length} valid ones.`);
+      } else {
+          finalQuotes = filteredQuotes; // Take all valid quotes if fewer than 6
+          console.log(`Returning all ${filteredQuotes.length} valid quotes as fewer than 6 were available.`);
+      }
+
+      console.log(`Successfully parsed. Returning ${finalQuotes.length} quotes after filtering and selection.`);
+      res.json(finalQuotes); // Send final selected quotes
 
     } catch (parseError: unknown) {
       // Log the error appropriately

@@ -145,25 +145,27 @@
 **Mechanism:**
 
 1.  **Backend Endpoint:** Implement a new RESTful endpoint `GET /api/quotes` within the existing Express backend (`server.js`).
-2.  **AI Service Integration:** This endpoint will act as a proxy to the Anthropic Claude AI API.
+2.  **Configuration:** The use of this feature is controlled by the `ENABLE_AI_QUOTES` environment variable. If set to `"true"` (case-insensitive), the backend attempts to contact the AI service. Otherwise, the endpoint returns an error (e.g., 503), triggering the frontend fallback.
+3.  **AI Service Integration:** This endpoint will act as a proxy to the Anthropic Claude AI API.
     *   **SDK:** Utilize the official `@anthropic-ai/sdk` Node.js package.
     *   **Authentication:** Requires an `ANTHROPIC_API_KEY` environment variable configured securely (using `.env` locally with `.gitignore`, and Railway environment variables for deployment). The server should validate the presence of this key on startup.
     *   **Model:** Target an efficient Claude model suitable for this task, such as `claude-3-haiku-20240307`.
-3.  **Prompting Strategy:**
+4.  **Prompting Strategy:**
     *   The backend will send a carefully crafted prompt to the Claude API.
-    *   **Prompt Goals:** Request **6** distinct paragraphs suitable for typing tests (approx. 150-300 characters each), neutral or inspirational tone, avoiding complex jargon.
-    *   **Output Format:** Crucially, the prompt will instruct Claude to respond *only* with a valid JSON array containing exactly **6** strings, each representing a paragraph. Example: `["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragraph 4...", "paragraph 5...", "paragraph 6..."]`
-4.  **Response Handling:**
+    *   **Prompt Goals:** Request 6 distinct paragraphs suitable for typing tests (approx. 150-300 characters each), neutral or inspirational tone, avoiding complex jargon.
+    *   **Output Format:** Crucially, the prompt will instruct Claude to respond *only* with a valid JSON array containing exactly 6 strings, each representing a paragraph. Example: `["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragraph 4...", "paragraph 5...", "paragraph 6..."]`
+5.  **Response Handling:**
     *   The backend will receive the text response from Claude.
     *   It will attempt to parse this text response as JSON.
-    *   Validation will ensure the result is an array containing exactly **6** non-empty strings.
-5.  **Frontend Interaction:**
+    *   Validation will ensure the result is an array containing exactly 6 non-empty strings.
+6.  **Frontend Interaction:**
     *   If the backend successfully obtains and validates the quotes from Claude, it sends the JSON array `["quote1", "quote2", ...]` with a 200 OK status to the frontend.
     *   The existing frontend `fetchQuotes` function in `App.jsx` will consume this array directly.
-6.  **Error Handling & Fallback:**
-    *   If any step in the backend fails (missing API key, Claude API error, timeout, parsing failure, validation failure, content moderation flags), the backend will log the specific error internally and return an appropriate HTTP error status (e.g., 500) to the frontend.
-    *   The frontend's existing `catch` block in `fetchQuotes` remains unchanged. Upon receiving an error status from `/api/quotes`, it will automatically activate the fallback mechanism, shuffling and displaying quotes from the hardcoded `fallbackQuotes` array. This ensures the application remains functional even if the AI service is unavailable.
-7.  **Caching (Optional Future Enhancement):** Consider adding backend caching for successful Claude API responses (e.g., for 5-15 minutes) to reduce costs, improve responsiveness, and mitigate the impact of brief API fluctuations.
+7.  **Error Handling & Fallback:**
+    *   If the `ENABLE_AI_QUOTES` variable is not `"true"`, the endpoint immediately returns an error (e.g., 503 Service Unavailable).
+    *   If any step in the AI interaction fails (missing API key, Claude API error, timeout, parsing failure, validation failure, content moderation flags), the backend will log the specific error internally and return an appropriate HTTP error status (e.g., 500) to the frontend.
+    *   The frontend's existing `catch` block in `fetchQuotes` remains unchanged. Upon receiving an error status from `/api/quotes`, it will automatically activate the fallback mechanism, shuffling and displaying quotes from the hardcoded `fallbackQuotes` array. This ensures the application remains functional even if the AI service is unavailable or disabled.
+8.  **Caching (Optional Future Enhancement):** Consider adding backend caching for successful Claude API responses (e.g., for 5-15 minutes) to reduce costs, improve responsiveness, and mitigate the impact of brief API fluctuations.
 
 ### 4.3 Frontend Requirements
 - Responsive UI supporting multiple screen sizes
@@ -185,7 +187,8 @@
 - npm package manager
 - Git for version control
 - Modern web browser (Chrome, Firefox, Safari)
-- Anthropic API Key (for dynamic quote feature)
+- Anthropic API Key (for dynamic quote feature, stored in `.env`)
+- `ENABLE_AI_QUOTES` environment variable (optional, set to `"true"` in `.env` to enable AI quotes locally)
 
 #### 4.5.2 Method 1: Local Development (Frontend + Backend)
 
@@ -198,7 +201,9 @@
    ```bash
    cd SpeedType/backend
    npm install
-   # Create .env file and add ANTHROPIC_API_KEY=your_key_here
+   # Create .env file (if not present)
+   # Add ANTHROPIC_API_KEY=your_key_here to .env
+   # Optionally add ENABLE_AI_QUOTES="true" to .env
    # Ensure .env is in .gitignore
    node server.js  # Runs on port 3001
    ```
@@ -233,7 +238,7 @@ This method hosts the frontend on GitHub Pages and the backend on Railway, provi
    - The backend is automatically deployed to Railway on push to the `main` branch *if* changes are detected within the `SpeedType/backend/` directory or the `railway-deploy.yml` workflow file.
    - This is handled by the `.github/workflows/railway-deploy.yml` GitHub Actions workflow.
    - Configuration is managed through `railway.toml`.
-   - **Environment variables (including `ANTHROPIC_API_KEY`) must be managed securely in the Railway dashboard.**
+   - **Environment variables (including `ANTHROPIC_API_KEY` and optionally `ENABLE_AI_QUOTES="true"`) must be managed securely in the Railway dashboard.**
 
 2. Frontend Deployment to GitHub Pages:
    - The frontend is automatically deployed to GitHub Pages by the `.github/workflows/deploy.yml` GitHub Actions workflow.

@@ -157,8 +157,13 @@ function App({ initialMultiplayer = false }) {
   const fetchQuotes = async (retries = 3) => {
     setIsLoadingQuotes(true);
     try {
+      // Construct URL using config
+      const url = `${config.BACKEND_URL}/api/quotes`;
+      // console.log(`[App.jsx fetchQuotes] Config Backend URL: ${config.BACKEND_URL}`); 
+      // console.log(`[App.jsx fetchQuotes] Constructed URL for fetch: ${url}`); 
+
       const response = await withTimeout(
-        fetch(`${config.BACKEND_URL}/api/quotes`),
+        fetch(url), // Use the constructed URL
         config.SOCKET_TIMEOUT
       );
       if (!response.ok) {

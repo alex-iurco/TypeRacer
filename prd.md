@@ -151,12 +151,12 @@
     *   **Model:** Target an efficient Claude model suitable for this task, such as `claude-3-haiku-20240307`.
 3.  **Prompting Strategy:**
     *   The backend will send a carefully crafted prompt to the Claude API.
-    *   **Prompt Goals:** Request 5 distinct paragraphs suitable for typing tests (approx. 150-300 characters each), neutral or inspirational tone, avoiding complex jargon.
-    *   **Output Format:** Crucially, the prompt will instruct Claude to respond *only* with a valid JSON array containing exactly 5 strings, each representing a paragraph. Example: `["paragraph 1...", "paragraph 2...", ...]`
+    *   **Prompt Goals:** Request **6** distinct paragraphs suitable for typing tests (approx. 150-300 characters each), neutral or inspirational tone, avoiding complex jargon.
+    *   **Output Format:** Crucially, the prompt will instruct Claude to respond *only* with a valid JSON array containing exactly **6** strings, each representing a paragraph. Example: `["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragraph 4...", "paragraph 5...", "paragraph 6..."]`
 4.  **Response Handling:**
     *   The backend will receive the text response from Claude.
     *   It will attempt to parse this text response as JSON.
-    *   Validation will ensure the result is an array containing exactly 5 non-empty strings.
+    *   Validation will ensure the result is an array containing exactly **6** non-empty strings.
 5.  **Frontend Interaction:**
     *   If the backend successfully obtains and validates the quotes from Claude, it sends the JSON array `["quote1", "quote2", ...]` with a 200 OK status to the frontend.
     *   The existing frontend `fetchQuotes` function in `App.jsx` will consume this array directly.

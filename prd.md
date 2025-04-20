@@ -144,28 +144,32 @@
 
 **Mechanism:**
 
-1.  **Backend Endpoint:** Implement a new RESTful endpoint `GET /api/quotes` within the existing Express backend (`server.js`).
+1.  **Backend Endpoint:** Implemented via `GET /api/quotes` within the existing Express backend (`server.ts`).
 2.  **Configuration:** The use of this feature is controlled by the `ENABLE_AI_QUOTES` environment variable. If set to `"true"` (case-insensitive), the backend attempts to contact the AI service. Otherwise, the endpoint returns an error (e.g., 503), triggering the frontend fallback.
-3.  **AI Service Integration:** This endpoint will act as a proxy to the Anthropic Claude AI API.
-    *   **SDK:** Utilize the official `@anthropic-ai/sdk` Node.js package.
-    *   **Authentication:** Requires an `ANTHROPIC_API_KEY` environment variable configured securely (using `.env` locally with `.gitignore`, and Railway environment variables for deployment). The server should validate the presence of this key on startup.
-    *   **Model:** Target an efficient Claude model suitable for this task, such as `claude-3-haiku-20240307`.
+3.  **AI Service Integration:** Uses the Anthropic Claude AI API.
+    *   **SDK:** Utilizes the official `@anthropic-ai/sdk` Node.js package.
+    *   **Authentication:** Requires an `ANTHROPIC_API_KEY` environment variable configured securely (using `.env` locally with `.gitignore`, and Railway environment variables for deployment). The server validates the presence of this key.
+    *   **Model:** Targets `claude-3-haiku-20240307`.
 4.  **Prompting Strategy:**
-    *   The backend will send a carefully crafted prompt to the Claude API.
-    *   **Prompt Goals:** Request 6 distinct paragraphs suitable for typing tests (approx. 150-300 characters each), neutral or inspirational tone, avoiding complex jargon.
-    *   **Output Format:** Crucially, the prompt will instruct Claude to respond *only* with a valid JSON array containing exactly 6 strings, each representing a paragraph. Example: `["paragraph 1...", "paragraph 2...", "paragraph 3...", "paragraph 4...", "paragraph 5...", "paragraph 6..."]`
-5.  **Response Handling:**
-    *   The backend will receive the text response from Claude.
-    *   It will attempt to parse this text response as JSON.
-    *   Validation will ensure the result is an array containing exactly 6 non-empty strings.
-6.  **Frontend Interaction:**
-    *   If the backend successfully obtains and validates the quotes from Claude, it sends the JSON array `["quote1", "quote2", ...]` with a 200 OK status to the frontend.
-    *   The existing frontend `fetchQuotes` function in `App.jsx` will consume this array directly.
-7.  **Error Handling & Fallback:**
-    *   If the `ENABLE_AI_QUOTES` variable is not `"true"`, the endpoint immediately returns an error (e.g., 503 Service Unavailable).
-    *   If any step in the AI interaction fails (missing API key, Claude API error, timeout, parsing failure, validation failure, content moderation flags), the backend will log the specific error internally and return an appropriate HTTP error status (e.g., 500) to the frontend.
-    *   The frontend's existing `catch` block in `fetchQuotes` remains unchanged. Upon receiving an error status from `/api/quotes`, it will automatically activate the fallback mechanism, shuffling and displaying quotes from the hardcoded `fallbackQuotes` array. This ensures the application remains functional even if the AI service is unavailable or disabled.
-8.  **Caching (Optional Future Enhancement):** Consider adding backend caching for successful Claude API responses (e.g., for 5-15 minutes) to reduce costs, improve responsiveness, and mitigate the impact of brief API fluctuations.
+    *   Requests 7 distinct paragraphs suitable for typing tests (150-400 characters each), neutral or inspirational tone, avoiding complex jargon.
+    *   Instructs Claude to respond *only* with a valid JSON array of 7 strings.
+5.  **Response Handling & Filtering:**
+    *   The backend parses the JSON response from Claude.
+    *   It filters the received array, keeping only quotes that are valid strings and have a length of **500 characters or less**.
+    *   From the filtered valid quotes, it **randomly selects exactly 6 quotes** if 6 or more are available. If fewer than 6 valid quotes were received/filtered, it returns all of them.
+6.  **Caching:**
+    *   The backend implements an in-memory cache for the successfully fetched and selected quotes to reduce API calls and improve performance.
+    *   **Duration:** Configurable via `AI_QUOTE_CACHE_MINUTES` (default 10 minutes).
+    *   **Request Threshold:** Configurable via `AI_QUOTE_MIN_REQUESTS_BEFORE_REFRESH` (default 10 requests).
+    *   **Proactive Refresh:** The cache is checked periodically in the background. A refresh is triggered only if *both* the cache duration has expired *and* the request count threshold has been met since the last successful refresh.
+    *   **Initial Population:** An attempt to populate the cache is made when the server starts.
+7.  **Frontend Interaction:**
+    *   The backend returns the final array of 0-6 quotes (from cache or a fresh fetch) with a 200 OK status to the frontend.
+    *   The frontend `fetchQuotes` function consumes this array.
+8.  **Error Handling & Fallback:**
+    *   If `ENABLE_AI_QUOTES` is false or API key is missing, the endpoint returns an error (e.g., 503).
+    *   If the cache is empty and an immediate fetch from Claude fails (API error, parsing error, etc.), the backend returns an appropriate HTTP error status (e.g., 500, 503) to the frontend.
+    *   The frontend's existing `catch` block in `fetchQuotes` handles these errors by activating the fallback mechanism (using hardcoded `fallbackQuotes`).
 
 ### 4.3 Frontend Requirements
 - Responsive UI supporting multiple screen sizes
@@ -251,161 +255,4 @@ This method hosts the frontend on GitHub Pages and the backend on Railway, provi
 3. Version Bumping:
    - Versioning is managed by the `.github/workflows/version-bump.yml` GitHub Actions workflow.
    - **Triggers:**
-     - Manually via the GitHub Actions UI (`workflow_dispatch`), allowing selection of `patch`, `minor`, or `major`.
-     - Automatically on pushes to `main` that include changes to frontend or backend source files (`src` directories), but only if at least 3 such "significant" commits have occurred since the last version bump. This prevents bumping on every small commit.
-   - **Actions:**
-     - Determines the appropriate bump type (manual input or based on commit messages: `feat:` for minor, `BREAKING CHANGE` or `!:` for major, `patch` default).
-     - Updates the `version` in `SpeedType/frontend/package.json`.
-     - Updates the `APP_VERSION` constant in `SpeedType/frontend/src/config/version.js`.
-     - Commits these changes with the message `chore: bump version to X.Y.Z [skip ci]`.
-     - Creates a Git tag `vX.Y.Z`.
-     - Pushes the commit and tag to the `main` branch.
-   - **Note:** The completion of this workflow triggers the `deploy.yml` workflow to ensure the newly versioned code is deployed.
-
-4. Production URLs:
-   - Frontend: https://speedtype.robocat.ai
-   - Backend: https://speedtype-backend-production.up.railway.app
-
-5. Security and Configuration:
-   - CORS settings configured for production domains
-   - Secure WebSocket connections (WSS) enabled
-   - Environment variables used for sensitive configurations (API Keys managed via hosting platform)
-   - Regular security updates and monitoring
-   - Custom domain with SSL/HTTPS support
-
-6. Monitoring and Maintenance:
-   - Railway provides built-in monitoring and logs
-   - GitHub Actions shows deployment status
-   - Version number displayed in UI for tracking updates
-   - Automatic restarts on failure configured in Railway
-
-7. Rollback Procedure:
-   - Railway supports instant rollbacks to previous backend deployments via its dashboard.
-   - Frontend rollbacks involve reverting the relevant commit on the `main` branch and allowing the `deploy.yml` workflow to redeploy the older version, or manually triggering a deployment workflow run from a specific commit hash via the GitHub Actions UI.
-
-## 5. User Journey
-
-### 5.1 Onboarding
-- Welcome screen with tutorial option
-- Account creation or guest mode selection
-- Initial typing test to establish baseline
-- Introduction to core features
-- First race with guided instructions
-
-### 5.2 Daily Usage
-- Dashboard showing daily challenges and statistics
-- Quick match button for immediate racing
-- Notifications for friend activities and challenges
-- Daily goals and rewards
-- Practice recommendations based on previous performance
-
-### 5.3 Progression
-- Level-up system based on races completed and performance
-- Unlockable content at milestone achievements
-- Skill-based matchmaking adjustment
-- Advanced statistics unlocked at higher levels
-- Tournament eligibility based on consistent performance
-
-## 6. Success Metrics
-
-### 6.1 User Engagement
-- Daily active users (DAU) and monthly active users (MAU)
-- Average session length
-- Races completed per user per day
-- Retention rates (1-day, 7-day, 30-day)
-
-### 6.2 Performance Metrics
-- Server response time and reliability
-- Application crash frequency
-- Match completion rate
-- Feature usage statistics
-
-### 6.3 Business Metrics
-- User acquisition cost
-- Conversion rate to premium features
-- Revenue per user
-- Overall platform growth
-
-## 7. Monetization Strategy
-
-### 7.1 Freemium Model
-- Core racing functionality free for all users
-- Premium subscription with enhanced features
-- Tournament entry fees with prize pools
-- Ad-supported free tier
-
-### 7.2 Premium Features
-- Advanced analytics and insights
-- Exclusive car skins and customizations
-- Ad-free experience
-- Private tournament hosting capabilities
-- Priority matchmaking
-
-## 8. Implementation Timeline
-
-### 8.1 Phase 1 - MVP (Months 0-3)
-- Core racing functionality
-- Basic user accounts
-- Fundamental race visualization
-- Initial matchmaking system
-- Web platform release
-
-### 8.2 Phase 2 - Enhancement (Months 4-6)
-- Mobile application development
-- Advanced statistics implementation
-- Social features and friend system
-- Expanded text library (Dynamic sourcing via API)
-- Customization options
-
-### 8.3 Phase 3 - Expansion (Months 7-12)
-- Tournament system
-- Team/clan features
-- Desktop application release
-- Advanced customization options
-- API for third-party integration
-
-## 9. Risks and Mitigation
-
-### 9.1 Technical Risks
-- **Risk:** Latency issues affecting race fairness
-  - **Mitigation:** Regional servers, optimized networking code
-- **Risk:** Cheating or automation tools
-  - **Mitigation:** Pattern detection, replay analysis, reporting system
-- **Risk:** AI API Costs / Rate Limits / Availability
-  - **Mitigation:** Use efficient models (Haiku), implement backend caching, monitor usage, rely on robust frontend fallback.
-
-### 9.2 Market Risks
-- **Risk:** Competition from established platforms
-  - **Mitigation:** Unique features, superior UX, targeted marketing
-- **Risk:** Low user acquisition
-  - **Mitigation:** Freemium model, social sharing incentives
-
-## 10. Appendix
-
-### 10.1 User Interface Mockups
-- Key screens including racing visualization as per provided image reference
-- Dashboard design
-- Profile and statistics views
-- Customization interfaces
-
-### 10.2 Competitive Analysis
-- Feature comparison with similar typing games and other competitors
-- Market positioning strategy
-- Unique value propositions
-
-### 10.3 Technical Architecture
-- System design diagram
-- Database schema
-- API documentation (Placeholder - To be created)
-- Third-party service dependencies (Anthropic Claude API)
-
-## 11. Document History
-
-| Version | Date       | Author         | Changes Made                     |
-|---------|------------|----------------|----------------------------------|
-| 1.0     | 2024-03-15 | Alex Iurco     | Initial draft                    |
-| 1.1     | 2024-03-20 | Alex Iurco     | Added Feature Details            |
-| 1.2     | 2024-04-01 | Alex Iurco     | Refined Technical Requirements   |
-| 1.3     | 2024-04-10 | Alex Iurco     | Updated Deployment Section       |
-| 1.4     | 2024-04-19 | AI Assistant | Updated Deployment & Versioning |
-| 1.5     | 2024-04-20 | AI Assistant | Documented Claude AI Integration |
+     - Manually via the GitHub Actions UI (`workflow_dispatch`), allowing selection of `patch`, `minor`, or `

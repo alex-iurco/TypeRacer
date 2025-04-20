@@ -43,7 +43,8 @@ describe('GET /api/quotes', () => {
     const response = await request(server).get('/api/quotes');
 
     console.log("Response Status:", response.status);
-    // console.log("Response Body:", response.body); // Uncomment for detailed debugging
+    // Log the actual quotes received
+    console.log("Received Quotes Body:", JSON.stringify(response.body, null, 2));
 
     // Restore original env var value
     process.env.ENABLE_AI_QUOTES = originalEnableFlag;

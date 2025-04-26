@@ -88,4 +88,18 @@ describe('GET /api/quotes', () => {
     expect(response.body).toHaveProperty('error', 'AI quote generation is disabled.');
   });
 
-}); 
+});
+
+describe('Logging integration', () => {
+  it('should not throw and should respond to /api/quotes', async () => {
+    const res = await request(server).get('/api/quotes');
+    // We only check for a valid response, as logs are side effects
+    expect([200, 503]).toContain(res.statusCode);
+    // Optionally, check that the response is an array or error object
+    if (res.statusCode === 200) {
+      expect(Array.isArray(res.body)).toBe(true);
+    } else {
+      expect(res.body).toHaveProperty('error');
+    }
+  });
+});

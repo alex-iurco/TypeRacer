@@ -1,4 +1,5 @@
 import { Server, Socket } from 'socket.io';
+import logger from '../utils/logger';
 
 interface RaceRoom {
   players: Map<string, {
@@ -34,7 +35,7 @@ const startCountdown = (io: Server, roomId: string, room: RaceRoom, socket: Sock
   
   // Emit initial countdown immediately
   io.to(roomId).emit('countdown', count);
-  console.log('Starting countdown from 3 in room:', roomId);
+  logger.debug(`Starting countdown from 3 in room: ${roomId}`);
   
   const countdownInterval = setInterval(() => {
     // Check if room still exists
@@ -45,7 +46,7 @@ const startCountdown = (io: Server, roomId: string, room: RaceRoom, socket: Sock
     }
     
     count--;
-    console.log('Countdown:', count, 'for room:', roomId);
+    logger.debug(`Countdown: ${count} for room: ${roomId}`);
     
     if (count >= 0) {
       io.to(roomId).emit('countdown', count);
@@ -56,7 +57,7 @@ const startCountdown = (io: Server, roomId: string, room: RaceRoom, socket: Sock
       // Set race status to racing and emit text again
       currentRoomState.status = 'racing';
       currentRoomState.startTime = Date.now();
-      console.log('Starting race with text:', currentRoomState.text);
+      logger.debug(`Starting race with text: ${currentRoomState.text}`);
       // Emit race start with text again to ensure it's received
       io.to(roomId).emit('race_text', currentRoomState.text);
       emitRoomUpdate(io, roomId, currentRoomState, socket.id);
@@ -139,7 +140,7 @@ export const setupRaceSocket = (io: Server) => {
       const player = room.players.get(socket.id);
       if (!player) return;
 
-      console.log('Player ready in room:', roomId);
+      logger.debug(`Player ready in room: ${roomId}`);
       player.ready = true;
       emitRoomUpdate(io, roomId, room, socket.id);
 
@@ -163,7 +164,7 @@ export const setupRaceSocket = (io: Server) => {
       const room = rooms.get(roomId);
       if (!room) return;
 
-      console.log('Setting custom text for room:', roomId, text);
+      logger.debug(`Setting custom text for room: ${roomId}, text: ${text}`);
       
       // Update room text and emit immediately
       room.text = text;
@@ -220,4 +221,4 @@ export const setupRaceSocket = (io: Server) => {
       }
     });
   });
-}; 
+};

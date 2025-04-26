@@ -53,11 +53,19 @@ async function refreshQuotesCache() {
   }
   
   console.log('[Cache Refresh] Attempting to refresh AI quotes...');
-  const prompt = `Generate 7 distinct paragraphs suitable for a typing speed test.
-Each paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.
-The tone should be generally neutral or inspirational.
-Avoid complex jargon or proper nouns where possible.
-Crucially, ensure NO paragraph exceeds 400 characters.
+  // Original prompt for general typing speed test quotes
+  const oldPrompt = `Generate 7 distinct paragraphs suitable for a typing speed test.\nEach paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.\nThe tone should be generally neutral or inspirational.\nAvoid complex jargon or proper nouns where possible.\nCrucially, ensure NO paragraph exceeds 400 characters.\nIMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.\nExample format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
+
+  // Override prompt for quotes related to the latest news in AI, Tech, and Science
+  const prevprompt = `Generate 7 distinct paragraphs related to the latest news in AI, Technology, and Science.\nEach paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.\nThe tone should be informative and engaging, summarizing key advancements or discoveries in these fields.\nAvoid overly technical jargon or speculative content.\nCrucially, ensure NO paragraph exceeds 400 characters.\nIMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.\nExample format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
+
+  // Fun, pop-culture, whimsical, and fact-based prompt for variety
+  const prompt = `Generate 7 distinct paragraphs suitable for a typing speed test, each with a different style:
+- At least one should be light-hearted and humorous (use puns, jokes, or witty observations, family-friendly).
+- At least one should reference pop culture (movies, TV, or games) in a fun, indirect way, avoiding trademarked names.
+- At least one should be whimsical or imaginative (talking animals, magical lands, silly adventures).
+- At least one should share a fun, surprising, or quirky fact from around the world.
+The rest can be a mix of these styles. Each paragraph MUST be between 150 and 400 characters long. Keep all content engaging, playful, and suitable for all ages. Avoid offensive or overly technical content.
 IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.
 Example format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
 
@@ -348,4 +356,4 @@ if (require.main === module) {
 
 // Export for testing and deployment
 export { httpServer };
-export default app; 
+export default app;

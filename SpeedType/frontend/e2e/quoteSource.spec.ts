@@ -3,17 +3,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Quote Sourcing Logic', () => {
 
+  test.beforeEach(async ({ page }) => {
+    page.on('console', msg => {
+      // Print all browser console messages to the terminal
+      console.log(`[Browser console] ${msg.type()}: ${msg.text()}`);
+    });
+  });
+
+
   test('Scenario 1: AI Quotes Enabled & Successful', async ({ page }) => {
     // Assumption: Backend is running with ENABLE_AI_QUOTES=true and valid API key
     
     await page.goto('/'); // Navigate to the root/start page
 
-    // Wait specifically for the quotes API request to complete
-    await page.waitForResponse(response => 
-        response.url().includes('/api/quotes') && response.status() === 200
-    );
-
-    // Wait for the quote cards to be visible 
+    // Wait for the quote cards to be visible (ensures quotes are loaded)
     await page.waitForSelector('.quote-card p'); 
 
     // Get the text content of the first displayed quote

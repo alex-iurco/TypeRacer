@@ -42,6 +42,8 @@ logger.info(`AI Quote Refresh Check Interval: ${CHECK_INTERVAL_MS / 1000 / 60} m
 // --- End Anthropic Client Setup ---
 
 // --- Quote Cache ---
+import { sanitizeText } from './utils/shared';
+
 let cachedQuotes: string[] = [];
 let cacheRefreshTimer: NodeJS.Timeout | null = null;
 let cacheLastRefreshedTimestamp: number = 0; // Timestamp of last successful refresh
@@ -105,9 +107,11 @@ Example format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
       }
 
       const maxLength = 500;
-      const filteredQuotes = quotes.filter(quote => 
-          typeof quote === 'string' && quote.length <= maxLength && quote.trim() !== ''
-      );
+      // Sanitize all quotes before filtering
+      const sanitizedQuotes = quotes.map(q => typeof q === 'string' ? sanitizeText(q) : q);
+      const filteredQuotes = sanitizedQuotes.filter(quote => 
+           typeof quote === 'string' && quote.length <= maxLength && quote.trim() !== ''
+       );
 
       if (filteredQuotes.length < quotes.length) {
           logger.warn(`[Cache Refresh] Filtered out ${quotes.length - filteredQuotes.length} quotes exceeding ${maxLength} chars or invalid.`);

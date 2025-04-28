@@ -1,5 +1,6 @@
 import { Server, Socket } from 'socket.io';
 import logger from '../utils/logger';
+import { sanitizeText } from '../utils/shared';
 
 interface RaceRoom {
   players: Map<string, {
@@ -166,9 +167,10 @@ export const setupRaceSocket = (io: Server) => {
 
       logger.debug(`Setting custom text for room: ${roomId}, text: ${text}`);
       
-      // Update room text and emit immediately
-      room.text = text;
-      io.to(roomId).emit('race_text', text);
+      // Sanitize custom text before saving and emitting
+      const cleanedText = sanitizeText(text);
+      room.text = cleanedText;
+      io.to(roomId).emit('race_text', cleanedText);
       
       // For single player, mark player as ready and start countdown
       if (room.isSinglePlayer) {

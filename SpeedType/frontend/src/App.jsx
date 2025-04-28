@@ -73,6 +73,7 @@ try {
   socket = null;
 }
 
+import { sanitizeText } from '../../shared/sanitizeText';
 // Utility function for handling promises with timeout
 const withTimeout = (promise, ms = config.SOCKET_TIMEOUT) => {
   const timeout = new Promise((_, reject) => {
@@ -336,7 +337,8 @@ function App({ initialMultiplayer = false }) {
       // Ensure socket is connected
       await withTimeout(ensureSocketReady(), config.SOCKET_TIMEOUT);
       
-      const raceText = customText.trim() || quotes[Math.floor(Math.random() * quotes.length)] || fallbackQuotes[0];
+      const rawRaceText = customText.trim() || quotes[Math.floor(Math.random() * quotes.length)] || fallbackQuotes[0];
+      const raceText = sanitizeText(rawRaceText);
       console.log('Starting race');
       
       const singlePlayerRoom = `single-player-${Date.now()}`;

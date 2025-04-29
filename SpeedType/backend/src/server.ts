@@ -197,7 +197,7 @@ const app = express();
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {
-  logger.info(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  logger.debug(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
 
@@ -252,7 +252,7 @@ router.get('/health', (req, res) => {
 
 // Quotes route - Now uses cache
 router.get('/quotes', async (req, res) => {
-  logger.info("Received request for /api/quotes"); 
+  logger.debug("Received request for /api/quotes"); 
 
   // Check if AI feature is active (uses global check now)
   if (!canUseAiQuotes) {

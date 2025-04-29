@@ -170,6 +170,18 @@ body {
   transform: translateY(0);
 }
 
+.race-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.race-buttons button {
+  flex: 1;
+  min-width: 120px;
+}
+
 .refresh-quotes {
   background-color: #4169e1;
   color: white;
@@ -318,7 +330,6 @@ button:focus-visible {
 
 .multiplayer-button {
   background-color: #1a1a1a;
-  margin-top: 1rem;
 }
 
 .multiplayer-button:hover {

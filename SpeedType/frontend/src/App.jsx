@@ -223,7 +223,7 @@ function App({ initialMultiplayer = false }) {
     }
 
     function onRoomState(state) {
-      console.log('Room state:', state);
+      console.debug('Room state:', state);
       if (state.error) {
         setConnectionError(`Room error: ${state.error}`);
         return;
@@ -623,20 +623,22 @@ function App({ initialMultiplayer = false }) {
                   rows={4}
                 />
               </div>
+              <div className="race-buttons">
               <button 
                 className="start-button"
                 onClick={handleStartRace}
                 disabled={!isConnected}
               >
-                Start Single Player Race
+                Single Player
               </button>
               <button 
                 className="multiplayer-button"
                 onClick={startMultiplayerMode}
                 disabled={!isConnected}
               >
-                Join Multiplayer Race
+                Multiplayer
               </button>
+              </div>
             </div>
           </div>
         )}

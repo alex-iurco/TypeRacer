@@ -4,8 +4,7 @@
   "description": "Backend for SpeedType - A real-time typing race game",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "NODE_ENV=development ts-node-dev --respawn --transpile-only src/server.ts",
-    "dev:prod": "NODE_ENV=production ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "NODE_ENV=development ts-node-dev --respawn --transpile-only src/server.ts | pino-pretty",
     "start": "NODE_ENV=production node dist/server.js",
     "build": "tsc",
     "postinstall": "npm run build",

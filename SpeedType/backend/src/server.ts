@@ -33,6 +33,8 @@ const anthropic = anthropicApiKey ? new Anthropic({ apiKey: anthropicApiKey }) :
 // Check if AI can be used (requires flag and initialized client)
 const canUseAiQuotes = isAiGloballyEnabled && !!anthropic;
 
+logger.debug('This is a debug log test!');
+
 logger.info(`AI Quote Generation Globally Enabled: ${isAiGloballyEnabled}`);
 logger.info(`Anthropic Client Initialized: ${!!anthropic}`);
 logger.info(`AI Quotes Feature Active: ${canUseAiQuotes}`);
@@ -182,6 +184,9 @@ const getAllowedOrigins = () => {
   return origins.split(',').map(origin => origin.trim());
 };
 
+// Debug log to verify allowed origins setting (structured log)
+logger.debug({ allowedOrigins: getAllowedOrigins() }, 'Allowed CORS origins');
+
 // Create and configure the app
 const app = express();
 
@@ -330,9 +335,9 @@ if (require.main === module) {
     // Start HTTP Server
     httpServer.listen(PORT, () => {
       logger.info(`Server listening on *:${PORT}`);
-      logger.info('Allowed origins:', getAllowedOrigins());
-      logger.info('CORS methods:', corsOptions.methods);
-      logger.info('Environment:', process.env.NODE_ENV || 'development');
+      logger.info({ allowedOrigins: getAllowedOrigins() }, 'Allowed origins');
+      logger.info({ corsMethods: corsOptions.methods }, 'CORS methods');
+      logger.info({ environment: process.env.NODE_ENV || 'development' }, 'Environment');
       logger.info(`AI Quotes Feature Active: ${canUseAiQuotes}`); // Reiterate status
 
       // Start Background Cache Refresh Check Interval

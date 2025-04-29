@@ -1,5 +1,10 @@
 import dotenv from 'dotenv';
-dotenv.config();
+// Load environment variables from the correct file based on NODE_ENV
+if (process.env.NODE_ENV) {
+  dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
+} else {
+  dotenv.config(); // Fallback to default .env
+}
 
 import pino from 'pino';
 

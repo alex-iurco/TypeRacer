@@ -7,8 +7,13 @@ import Anthropic from '@anthropic-ai/sdk'; // Import Anthropic SDK
 import { setupRaceSocket } from './socket/raceSocket';
 import logger from './utils/logger';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from the correct file based on NODE_ENV
+// This ensures consistent environment variable loading everywhere
+if (process.env.NODE_ENV) {
+  dotenv.config({ path: `.env.${process.env.NODE_ENV}` });
+} else {
+  dotenv.config(); // Fallback to default .env
+}
 
 // --- Configuration ---
 const PORT = process.env.PORT || 3001;

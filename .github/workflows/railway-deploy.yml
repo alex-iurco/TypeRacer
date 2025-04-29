@@ -53,7 +53,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Starting deployment..."
-          railway up --service speedtype
+          railway up --service speedtype-backend
 
       - name: Verify Deployment
         run: |

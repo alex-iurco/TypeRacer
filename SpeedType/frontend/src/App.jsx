@@ -24,7 +24,7 @@ try {
     ...config.SOCKET_CONFIG,
     timeout: config.SOCKET_TIMEOUT,
     autoConnect: false, // Prevent auto-connection before we're ready
-    transports: ['polling'], // Start with polling only
+    transports: ['polling', 'websocket'], // Start with polling only
     withCredentials: true,
     extraHeaders: {
       'X-Client-Version': '1.0.1'
@@ -336,6 +336,7 @@ function App({ initialMultiplayer = false }) {
       // Ensure socket is connected
       await withTimeout(ensureSocketReady(), config.SOCKET_TIMEOUT);
       
+      console.log("customText before race:", customText);
       const raceText = customText.trim() || quotes[Math.floor(Math.random() * quotes.length)] || fallbackQuotes[0];
       console.log('Starting race');
       

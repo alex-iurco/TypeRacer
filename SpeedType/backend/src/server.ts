@@ -54,21 +54,14 @@ let cacheRefreshTimer: NodeJS.Timeout | null = null;
 let cacheLastRefreshedTimestamp: number = 0; // Timestamp of last successful refresh
 let cacheRequestCounter: number = 0; // Counter for requests since last refresh
 
-async function refreshQuotesCache() {
-  if (!canUseAiQuotes) {
-      logger.info('[Cache Refresh] Skipping: AI quotes feature is not active.');
-      return; // Don't try to refresh if AI isn't active
-  }
-  
-  logger.info('[Cache Refresh] Attempting to refresh AI quotes...');
-  // Original prompt for general typing speed test quotes
-  const oldPrompt = `Generate 7 distinct paragraphs suitable for a typing speed test.\nEach paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.\nThe tone should be generally neutral or inspirational.\nAvoid complex jargon or proper nouns where possible.\nCrucially, ensure NO paragraph exceeds 400 characters.\nIMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.\nExample format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
+// Original prompt for general typing speed test quotes
+const oldPrompt = `Generate 7 distinct paragraphs suitable for a typing speed test.\nEach paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.\nThe tone should be generally neutral or inspirational.\nAvoid complex jargon or proper nouns where possible.\nCrucially, ensure NO paragraph exceeds 400 characters.\nIMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.\nExample format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
 
-  // Override prompt for quotes related to the latest news in AI, Tech, and Science
-  const prevprompt = `Generate 7 distinct paragraphs related to the latest news in AI, Technology, and Science.\nEach paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.\nThe tone should be informative and engaging, summarizing key advancements or discoveries in these fields.\nAvoid overly technical jargon or speculative content.\nCrucially, ensure NO paragraph exceeds 400 characters.\nIMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.\nExample format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
+// Override prompt for quotes related to the latest news in AI, Tech, and Science
+const prevprompt = `Generate 7 distinct paragraphs related to the latest news in AI, Technology, and Science.\nEach paragraph MUST be between 150 and 400 characters long. Strictly adhere to this length range.\nThe tone should be informative and engaging, summarizing key advancements or discoveries in these fields.\nAvoid overly technical jargon or speculative content.\nCrucially, ensure NO paragraph exceeds 400 characters.\nIMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.\nExample format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
 
-  // Fun, pop-culture, whimsical, and fact-based prompt for variety
-  const prompt = `Generate 7 distinct paragraphs suitable for a typing speed test, each with a different style:
+// Fun, pop-culture, whimsical, and fact-based prompt for variety
+const prompt = `Generate 7 distinct paragraphs suitable for a typing speed test, each with a different style:
 - At least one should be light-hearted and humorous (use puns, jokes, or witty observations, family-friendly).
 - At least one should reference pop culture (movies, TV, or games) in a fun, indirect way, avoiding trademarked names.
 - At least one should be whimsical or imaginative (talking animals, magical lands, silly adventures).
@@ -77,11 +70,34 @@ The rest can be a mix of these styles. Each paragraph MUST be between 150 and 40
 IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array.
 Example format: ["paragraph 1...", "paragraph 2...", ..., "paragraph 7..."]`;
 
+const promptLearningCreativity = `Generate 7 distinct motivational quotes or short paragraphs tailored for a professional interested in learning, creativity, leadership, and resilience. Each should be between 150 and 600 characters. Address overcoming knowledge gaps, task aversion, and fear of failure. Mix practical advice and philosophical insights. Prefer original advice, but include real advice from famous people if relevant. Focus on daily motivation, long-term goals, and overcoming immediate procrastination. IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one quote or paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array. Example format: ["quote 1...", "quote 2...", ..., "quote 7..."]`;
+
+const promptTechAIEntrepreneur = `Generate 7 distinct motivational quotes or short paragraphs for a professional in technology, AI, and entrepreneurship. Each should be between 150 and 600 characters. Address challenges like knowledge gaps, task aversion, and fear of failure. Blend practical and philosophical advice, with a preference for original insights, but include real advice from notable figures if relevant. Make the content thought-provoking, focusing on daily motivation, long-term vision, and overcoming procrastination. IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one quote or paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array. Example format: ["quote 1...", "quote 2...", ..., "quote 7..."]`;
+
+const promptProductivityGeneral = `Generate 7 distinct motivational quotes or short paragraphs focused on productivity, motivation, and overcoming procrastination for an experienced professional. Each should be between 150 and 600 characters. Address issues like knowledge gaps, task aversion, and fear of failure. Use a mix of practical tips and philosophical thoughts, with a preference for original advice, but include real advice from famous people if relevant. Cover both daily motivation and long-term goals. IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one quote or paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array. Example format: ["quote 1...", "quote 2...", ..., "quote 7..."]`;
+
+async function refreshQuotesCache() {
+  if (!canUseAiQuotes) {
+      logger.info('[Cache Refresh] Skipping: AI quotes feature is not active.');
+      return; // Don't try to refresh if AI isn't active
+  }
+  
+  logger.info('[Cache Refresh] Attempting to refresh AI quotes...');
+  // List of available prompts
+  const prompts = [
+    prompt,
+    promptLearningCreativity,
+    promptTechAIEntrepreneur,
+    promptProductivityGeneral
+  ];
+  // Randomly select one prompt
+  const selectedPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+
   try {
     const msg = await anthropic!.messages.create({ // Use non-null assertion as canUseAiQuotes checks anthropic
       model: "claude-3-haiku-20240307",
       max_tokens: 2100, 
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: selectedPrompt }],
     });
 
      if (msg.stop_reason === 'max_tokens') {

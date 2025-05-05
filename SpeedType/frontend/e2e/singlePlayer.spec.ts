@@ -75,7 +75,7 @@ test.describe('Single Player Mode', () => {
     await page.screenshot({ path: 'test-results/initialization-initial-state.png' });
 
     // Click start button
-    const singlePlayerButton = page.getByText('Start Single Player Race');
+    const singlePlayerButton = page.getByText('Single Player');
     await singlePlayerButton.waitFor({ state: 'visible' });
     await singlePlayerButton.click();
     console.log('Single player button clicked');
@@ -125,7 +125,7 @@ test.describe('Single Player Mode', () => {
     await page.screenshot({ path: 'test-results/complete-initial-state.png' });
 
     // Click single player button
-    const singlePlayerButton = page.getByText('Start Single Player Race');
+    const singlePlayerButton = page.getByText('Single Player');
     await singlePlayerButton.waitFor({ state: 'visible' });
     await singlePlayerButton.click();
     console.log('Single player button clicked');
@@ -215,7 +215,7 @@ test.describe('Single Player Mode', () => {
     await customTextArea.fill(testText);
     
     // Click the actual button to start the race
-    const startButton = page.getByRole('button', { name: 'Start Single Player Race' });
+    const startButton = page.getByRole('button', { name: 'Single Player' });
     await startButton.click();
     
     // Wait for countdown
@@ -259,7 +259,7 @@ test.describe('Single Player Mode', () => {
       throw error;
     }
     
-    const singlePlayerButton = page.getByText('Start Single Player Race');
+    const singlePlayerButton = page.getByText('Single Player');
     await singlePlayerButton.waitFor({ state: 'visible' });
     await singlePlayerButton.click();
     console.log('Single player button clicked');

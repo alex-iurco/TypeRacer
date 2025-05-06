@@ -23,7 +23,7 @@ try {
   const socketConfig = {
     ...config.SOCKET_CONFIG,
     timeout: config.SOCKET_TIMEOUT,
-    autoConnect: false, // Prevent auto-connection before we're ready
+    autoConnect: true, // Prevent auto-connection before we're ready
     transports: ['polling', 'websocket'], // Start with polling only
     withCredentials: true,
     extraHeaders: {

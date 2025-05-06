@@ -2,11 +2,13 @@ import { test, expect } from '@playwright/test';
 
 /**
  * Single Player Test Suite
- * 
- * Consolidated from previous race.spec.js and race.spec.ts files
- * Combines the best testing approaches from both implementations
- */
+*/
 test.describe('Single Player Mode', () => {
+  // Add a delay before all tests in this file
+  test.beforeAll(async () => {
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
+  });
+
   // Setup connection check for each test
   test.beforeEach(async ({ page }) => {
     // Enable debug logging with timestamps
@@ -313,4 +315,4 @@ test.describe('Single Player Mode', () => {
 
     // No assertions for now, just observation
   });
-}); 
+});

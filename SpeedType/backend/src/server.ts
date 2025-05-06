@@ -3,7 +3,7 @@ import { createServer as createHttpServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import Anthropic from '@anthropic-ai/sdk'; // Import Anthropic SDK
+import { getAIProvider } from './aiProviders';
 import { setupRaceSocket } from './socket/raceSocket';
 import logger from './utils/logger';
 
@@ -23,30 +23,21 @@ const CACHE_DURATION_MS = AI_QUOTE_CACHE_MINUTES * 60 * 1000;
 // Refresh slightly before cache expires (e.g., 1 minute before)
 const CHECK_INTERVAL_MS = Math.max(60 * 1000, CACHE_DURATION_MS - (60 * 1000)); 
 
-// --- Anthropic Client Setup ---
-const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+// --- AI Provider Modular Setup ---
+const aiQuoteProviderName = process.env.AI_QUOTE_PROVIDER || 'claude-haiku';
 const isAiGloballyEnabled = process.env.ENABLE_AI_QUOTES?.toLowerCase() === 'true';
-
-if (!anthropicApiKey && isAiGloballyEnabled) {
-  // Only throw error if AI quotes are explicitly enabled but no key is found
-  throw new Error("ANTHROPIC_API_KEY is required because ENABLE_AI_QUOTES is true, but it was not found in environment variables.");
-} else if (!anthropicApiKey) {
-    logger.warn("ANTHROPIC_API_KEY not found. AI quote generation is disabled.");
-}
-
-const anthropic = anthropicApiKey ? new Anthropic({ apiKey: anthropicApiKey }) : null;
-// Check if AI can be used (requires flag and initialized client)
-const canUseAiQuotes = isAiGloballyEnabled && !!anthropic;
+const aiProvider = isAiGloballyEnabled ? getAIProvider(aiQuoteProviderName) : undefined;
+const canUseAiQuotes = isAiGloballyEnabled && !!aiProvider;
 
 logger.debug('This is a debug log test!');
 
 logger.info(`AI Quote Generation Globally Enabled: ${isAiGloballyEnabled}`);
-logger.info(`Anthropic Client Initialized: ${!!anthropic}`);
+logger.info(`AI Provider Selected: ${aiQuoteProviderName}`);
 logger.info(`AI Quotes Feature Active: ${canUseAiQuotes}`);
 logger.info(`AI Quote Cache Duration: ${AI_QUOTE_CACHE_MINUTES} minutes`);
 logger.info(`AI Quote Min Requests Before Refresh: ${AI_QUOTE_MIN_REQUESTS_BEFORE_REFRESH}`);
 logger.info(`AI Quote Refresh Check Interval: ${CHECK_INTERVAL_MS / 1000 / 60} minutes`);
-// --- End Anthropic Client Setup ---
+// --- End AI Provider Modular Setup ---
 
 // --- Quote Cache ---
 let cachedQuotes: string[] = [];
@@ -78,99 +69,46 @@ const promptProductivityGeneral = `Generate 7 distinct motivational quotes or sh
 
 async function refreshQuotesCache() {
   if (!canUseAiQuotes) {
-      logger.info('[Cache Refresh] Skipping: AI quotes feature is not active.');
-      return; // Don't try to refresh if AI isn't active
+    logger.info('[Cache Refresh] Skipping: AI quotes feature is not active.');
+    return;
   }
-  
-  logger.info('[Cache Refresh] Attempting to refresh AI quotes...');
-  // List of available prompts
+  // logger.debug(`[Cache Refresh] Attempting to refresh AI quotes using provider: ${aiQuoteProviderName}`);
   const prompts = [
     prompt,
     promptLearningCreativity,
     promptTechAIEntrepreneur,
     promptProductivityGeneral
   ];
-  // Randomly select one prompt
   const selectedPrompt = prompts[Math.floor(Math.random() * prompts.length)];
-
+  logger.info(`[AI Quotes] Selected prompt: ${selectedPrompt.slice(0, 200)}...`);
   try {
-    const msg = await anthropic!.messages.create({ // Use non-null assertion as canUseAiQuotes checks anthropic
-      model: "claude-3-haiku-20240307",
-      max_tokens: 2100, 
-      messages: [{ role: "user", content: selectedPrompt }],
-    });
-
-     if (msg.stop_reason === 'max_tokens') {
-        logger.warn("[Cache Refresh] Claude response stopped due to max_tokens.");
-     }
-     const firstContentBlock = msg.content?.[0];
-     if (!firstContentBlock || firstContentBlock.type !== 'text') {
-        logger.error("[Cache Refresh] Received empty, non-text, or invalid content block from Claude:", msg.content);
-        throw new Error("Empty or invalid content received from AI service during cache refresh");
-     }
-
-    const generatedText = firstContentBlock.text.trim();
-    let quotes = [];
-    try {
-      const jsonMatch = generatedText.match(/(\[.*\])/s); 
-      let textToParse = generatedText;
-      if (jsonMatch && jsonMatch[1]) {
-          textToParse = jsonMatch[1];
-      } else {
-          logger.warn("[Cache Refresh] No JSON array brackets found in Claude response, attempting to parse entire response.");
-      }
-
-      quotes = JSON.parse(textToParse);
-
-      if (!Array.isArray(quotes)) {
-        logger.error('[Cache Refresh] Invalid JSON structure after parsing Claude response: Expected an array, got:', typeof quotes);
-        throw new Error('Invalid JSON format received from Claude API - expected array.');
-      }
-
-      const maxLength = 500;
-      const filteredQuotes = quotes.filter(quote => 
-          typeof quote === 'string' && quote.length <= maxLength && quote.trim() !== ''
-      );
-
-      if (filteredQuotes.length < quotes.length) {
-          logger.warn(`[Cache Refresh] Filtered out ${quotes.length - filteredQuotes.length} quotes exceeding ${maxLength} chars or invalid.`);
-      }
-
-      let finalQuotes = [];
-      if (filteredQuotes.length >= 6) {
-          const shuffled = [...filteredQuotes];
-          for (let i = shuffled.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-          }
-          finalQuotes = shuffled.slice(0, 6);
-      } else {
-          finalQuotes = filteredQuotes; 
-      }
-
-      if (finalQuotes.length > 0) {
-          cachedQuotes = finalQuotes; // Update the cache
-          cacheLastRefreshedTimestamp = Date.now(); // Update timestamp
-          cacheRequestCounter = 0; // Reset counter
-          logger.info(`[Cache Refresh] Successfully refreshed cache with ${cachedQuotes.length} quotes. Counter reset.`);
-      } else {
-          logger.warn('[Cache Refresh] Refresh resulted in 0 valid quotes. Cache not updated.');
-          // Optionally keep stale cache here instead of clearing it? For now, cache remains unchanged.
-      }
-
-    } catch (parseError: unknown) {
-      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-      logger.error("[Cache Refresh] Failed to parse or validate Claude response:", errorMessage);
-      logger.error("[Cache Refresh] Raw response was:", generatedText);
-      // Don't update cache on parse error
+    const quotes = await aiProvider!.generateQuotes(selectedPrompt);
+    const maxLength = 500;
+    const filteredQuotes = quotes.filter(quote => typeof quote === 'string' && quote.length <= maxLength && quote.trim() !== '');
+    if (filteredQuotes.length < quotes.length) {
+      logger.warn(`[Cache Refresh] Filtered out ${quotes.length - filteredQuotes.length} quotes exceeding ${maxLength} chars or invalid.`);
     }
-
+    let finalQuotes = [];
+    if (filteredQuotes.length >= 6) {
+      const shuffled = [...filteredQuotes];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      finalQuotes = shuffled.slice(0, 6);
+    } else {
+      finalQuotes = filteredQuotes;
+    }
+    if (finalQuotes.length > 0) {
+      cachedQuotes = finalQuotes;
+      cacheLastRefreshedTimestamp = Date.now();
+      cacheRequestCounter = 0;
+      logger.info(`[Cache Refresh] Successfully refreshed cache with ${cachedQuotes.length} quotes. Counter reset.`);
+    } else {
+      logger.warn('[Cache Refresh] Refresh resulted in 0 valid quotes. Cache not updated.');
+    }
   } catch (error) {
-    logger.error("[Cache Refresh] Error calling Claude API:", error);
-     if (error instanceof Anthropic.APIError) {
-        logger.error("[Cache Refresh] Anthropic API Error Details:", { status: error.status, headers: error.headers, error: error.error });
-    }
-    // Don't update cache on API error
+    logger.error(`[Cache Refresh] Error calling AI provider (${aiQuoteProviderName}):`, error);
   }
 }
 

@@ -66,6 +66,8 @@ const promptLearningCreativity = `Generate 7 distinct motivational quotes or sho
 const promptTechAIEntrepreneur = `Generate 7 distinct motivational quotes or short paragraphs for a professional in technology, AI, and entrepreneurship. Each should be between 150 and 600 characters. Address challenges like knowledge gaps, task aversion, and fear of failure. Blend practical and philosophical advice, with a preference for original insights, but include real advice from notable figures if relevant. Make the content thought-provoking, focusing on daily motivation, long-term vision, and overcoming procrastination. IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one quote or paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array. Example format: ["quote 1...", "quote 2...", ..., "quote 7..."]`;
 
 const promptProductivityGeneral = `Generate 7 distinct motivational quotes or short paragraphs focused on productivity, motivation, and overcoming procrastination for an experienced professional. Each should be between 150 and 600 characters. Address issues like knowledge gaps, task aversion, and fear of failure. Use a mix of practical tips and philosophical thoughts, with a preference for original advice, but include real advice from famous people if relevant. Cover both daily motivation and long-term goals. IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one quote or paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array. Example format: ["quote 1...", "quote 2...", ..., "quote 7..."]`;
+const promptManifestation = `Generate 7 distinct motivational quotes or short paragraphs focused on manifestation, visualization, and bringing desires into reality for an experienced practitioner. Each should be between 250 and 600 characters. Address issues like limiting beliefs, alignment of thoughts with intentions, and maintaining faith during the manifestation process. Use a mix of practical techniques and philosophical wisdom, with a preference for original advice, but include real advice from notable manifestation teachers if relevant. Cover both daily affirmation practices and long-term manifestation goals. IMPORTANT: Respond ONLY with a valid JSON array containing exactly 7 strings, where each string is one quote or paragraph. Do not include any other text, explanation, or markdown formatting before or after the JSON array. Example format: ["quote 1...", "quote 2...", ..., "quote 7..."]`;
+
 
 async function refreshQuotesCache() {
   if (!canUseAiQuotes) {
@@ -77,7 +79,8 @@ async function refreshQuotesCache() {
     prompt,
     promptLearningCreativity,
     promptTechAIEntrepreneur,
-    promptProductivityGeneral
+    promptProductivityGeneral,
+    promptManifestation
   ];
   const selectedPrompt = prompts[Math.floor(Math.random() * prompts.length)];
   logger.info(`[AI Quotes] Selected prompt: ${selectedPrompt.slice(0, 200)}...`);

@@ -66,7 +66,7 @@ jobs:
           
           # Link to the project
           echo "Linking to Railway project..."
-          railway link $RAILWAY_PROJECT_ID --yes
+          echo "$RAILWAY_TOKEN" | railway link $RAILWAY_PROJECT_ID
           
           # Deploy
           railway up --detach || {

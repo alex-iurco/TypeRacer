@@ -50,14 +50,26 @@ jobs:
           EOF
 
       - name: Deploy to Railway
-        uses: railwayapp/action@v1.0.0
-        with:
-          service: speedtype-backend
-          environment: production
-          token: ${{ secrets.RAILWAY_TOKEN }}
-          projectId: ${{ secrets.RAILWAY_PROJECT_ID }}
-          workingDirectory: ./SpeedType
-          command: up --detach
+        working-directory: ./SpeedType
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+        run: |
+          # Install Railway CLI
+          npm install -g @railway/cli@latest
+          
+          # Login to Railway
+          echo "$RAILWAY_TOKEN" | railway login --ci
+          
+          # Link to the project
+          railway link $RAILWAY_PROJECT_ID
+          
+          # Deploy
+          railway up --detach || {
+            echo "Deployment failed, showing logs..."
+            railway logs || true
+            exit 1
+          }
 
       - name: Verify Deployment
         run: |

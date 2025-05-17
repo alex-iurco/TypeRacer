@@ -67,10 +67,15 @@ jobs:
           echo "Current directory: $(pwd)"
           ls -la
           
+          # List available services
+          echo "Available services:"
+          railway service list || true
+          
           # Deploy using the service name from railway.toml
-          railway up --detach || {
+          echo "Deploying service: speedtype-backend"
+          railway up --service speedtype-backend --detach || {
             echo "Deployment failed, showing logs..."
-            railway logs || true
+            railway logs --service speedtype-backend || true
             exit 1
           }
 

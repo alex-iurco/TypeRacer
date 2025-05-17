@@ -26,11 +26,11 @@ jobs:
           railway --version
 
       - name: Install Dependencies
-        working-directory: SpeedType/backend
+        working-directory: ./SpeedType/backend
         run: npm install
 
       - name: Build Backend
-        working-directory: SpeedType/backend
+        working-directory: ./SpeedType/backend
         run: |
           echo "Building TypeScript..."
           npm run build
@@ -38,7 +38,7 @@ jobs:
           ls -la dist/
 
       - name: Create env file
-        working-directory: SpeedType/backend
+        working-directory: ./SpeedType/backend
         run: |
           echo "Creating environment variables file..."
           cat > .env.production << EOF
@@ -49,40 +49,15 @@ jobs:
           CORS_CREDENTIALS=true
           EOF
 
-      - name: Deploy with Railway CLI
-        working-directory: SpeedType
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-        run: |
-          echo "Starting deployment..."
-          echo "Current directory: $(pwd)"
-          
-          # Create Railway config directory
-          mkdir -p ~/.railway
-          
-          # Create config file with token
-          cat > ~/.railway/config.json <<EOF
-          {
-            "token": "$RAILWAY_TOKEN"
-          }
-          EOF
-          
-          # Set environment variables for Railway CLI
-          export RAILWAY_PROJECT_ID
-          export RAILWAY_TOKEN
-          
-          # Link project
-          echo "Linking to Railway project..."
-          railway link $RAILWAY_PROJECT_ID
-          
-          # Deploy using npx to ensure we're using the latest CLI
-          echo "Deploying service..."
-          npx @railway/cli up --detach || {
-            echo "Deployment failed, showing logs..."
-            npx @railway/cli logs || true
-            exit 1
-          }
+      - name: Deploy to Railway
+        uses: railwayapp/action@v1.0.0
+        with:
+          service: speedtype-backend
+          environment: production
+          token: ${{ secrets.RAILWAY_TOKEN }}
+          projectId: ${{ secrets.RAILWAY_PROJECT_ID }}
+          workingDirectory: ./SpeedType
+          command: up --detach
 
       - name: Verify Deployment
         run: |

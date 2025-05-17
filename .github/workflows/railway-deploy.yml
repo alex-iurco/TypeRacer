@@ -50,7 +50,12 @@ jobs:
           EOF
 
       - name: Login to Railway
-        run: railway login --ci ${{ secrets.RAILWAY_TOKEN }}
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Logging in to Railway..."
+          echo "$RAILWAY_TOKEN" | railway login --password
+          railway status || true
 
       - name: Deploy to Railway
         working-directory: SpeedType

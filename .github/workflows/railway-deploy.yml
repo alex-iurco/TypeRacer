@@ -62,20 +62,28 @@ jobs:
         working-directory: SpeedType
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
         run: |
           echo "Starting deployment..."
           echo "Current directory: $(pwd)"
-          ls -la
           
-          # List available services
-          echo "Available services:"
-          railway service list || true
+          # Link to the Railway project
+          echo "Linking to Railway project..."
+          railway link $RAILWAY_PROJECT_ID
           
-          # Deploy using the service name from railway.toml
-          echo "Deploying service: speedtype-backend"
-          railway up --service speedtype-backend --detach || {
+          # Create or update the service
+          echo "Setting up service..."
+          if ! railway service connect speedtype-backend 2>/dev/null; then
+            echo "Creating new service: speedtype-backend"
+            railway service create speedtype-backend || true
+            railway service connect speedtype-backend
+          fi
+          
+          # Deploy the service
+          echo "Deploying service..."
+          railway up --detach || {
             echo "Deployment failed, showing logs..."
-            railway logs --service speedtype-backend || true
+            railway logs || true
             exit 1
           }
 

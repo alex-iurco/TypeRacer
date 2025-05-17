@@ -49,16 +49,7 @@ jobs:
           CORS_CREDENTIALS=true
           EOF
 
-      - name: Setup Railway Environment
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          echo "Setting up Railway environment..."
-          mkdir -p ~/.railway
-          echo "token: $RAILWAY_TOKEN" > ~/.railway/config.json
-          echo "Railway config created"
-
-      - name: Deploy to Railway
+      - name: Deploy with Railway CLI
         working-directory: SpeedType
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
@@ -67,23 +58,29 @@ jobs:
           echo "Starting deployment..."
           echo "Current directory: $(pwd)"
           
-          # Link to the Railway project
+          # Create Railway config directory
+          mkdir -p ~/.railway
+          
+          # Create config file with token
+          cat > ~/.railway/config.json <<EOF
+          {
+            "token": "$RAILWAY_TOKEN"
+          }
+          EOF
+          
+          # Set environment variables for Railway CLI
+          export RAILWAY_PROJECT_ID
+          export RAILWAY_TOKEN
+          
+          # Link project
           echo "Linking to Railway project..."
           railway link $RAILWAY_PROJECT_ID
           
-          # Create or update the service
-          echo "Setting up service..."
-          if ! railway service connect speedtype-backend 2>/dev/null; then
-            echo "Creating new service: speedtype-backend"
-            railway service create speedtype-backend || true
-            railway service connect speedtype-backend
-          fi
-          
-          # Deploy the service
+          # Deploy using npx to ensure we're using the latest CLI
           echo "Deploying service..."
-          railway up --detach || {
+          npx @railway/cli up --detach || {
             echo "Deployment failed, showing logs..."
-            railway logs || true
+            npx @railway/cli logs || true
             exit 1
           }
 

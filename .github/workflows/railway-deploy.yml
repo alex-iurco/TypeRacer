@@ -49,13 +49,14 @@ jobs:
           CORS_CREDENTIALS=true
           EOF
 
-      - name: Login to Railway
+      - name: Setup Railway Environment
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          echo "Logging in to Railway..."
-          echo "$RAILWAY_TOKEN" | railway login --password
-          railway status || true
+          echo "Setting up Railway environment..."
+          mkdir -p ~/.railway
+          echo "token: $RAILWAY_TOKEN" > ~/.railway/config.json
+          echo "Railway config created"
 
       - name: Deploy to Railway
         working-directory: SpeedType
@@ -63,12 +64,15 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Starting deployment..."
-          # List available projects to help with debugging
-          railway status || true
-          railway projects list || true
+          echo "Current directory: $(pwd)"
+          ls -la
           
-          # Deploy using the project ID from secrets
-          railway up --service speedtype-backend --detach
+          # Deploy using the service name from railway.toml
+          railway up --detach || {
+            echo "Deployment failed, showing logs..."
+            railway logs || true
+            exit 1
+          }
 
       - name: Verify Deployment
         run: |

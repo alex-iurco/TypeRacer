@@ -58,11 +58,15 @@ jobs:
           # Install Railway CLI
           npm install -g @railway/cli@latest
           
-          # Login to Railway
-          echo "$RAILWAY_TOKEN" | railway login --ci
+          # Create Railway config directory
+          mkdir -p ~/.railway
+          
+          # Create config file with token
+          echo "{\"token\": \"$RAILWAY_TOKEN\"}" > ~/.railway/config.json
           
           # Link to the project
-          railway link $RAILWAY_PROJECT_ID
+          echo "Linking to Railway project..."
+          railway link $RAILWAY_PROJECT_ID --yes
           
           # Deploy
           railway up --detach || {

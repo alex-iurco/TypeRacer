@@ -21,7 +21,9 @@ jobs:
           node-version: '18'
 
       - name: Install Railway CLI
-        run: npm i -g @railway/cli
+        run: |
+          npm install -g @railway/cli@latest
+          railway --version
 
       - name: Install Dependencies
         working-directory: SpeedType/backend
@@ -47,13 +49,21 @@ jobs:
           CORS_CREDENTIALS=true
           EOF
 
+      - name: Login to Railway
+        run: railway login --ci ${{ secrets.RAILWAY_TOKEN }}
+
       - name: Deploy to Railway
         working-directory: SpeedType
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "Starting deployment..."
-          railway up --service speedtype-backend
+          # List available projects to help with debugging
+          railway status || true
+          railway projects list || true
+          
+          # Deploy using the project ID from secrets
+          railway up --service speedtype-backend --detach
 
       - name: Verify Deployment
         run: |

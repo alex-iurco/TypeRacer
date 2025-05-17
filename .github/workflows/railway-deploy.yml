@@ -64,13 +64,13 @@ jobs:
           
           # Link to the project
           echo "Linking to Railway project..."
-          railway link $RAILWAY_PROJECT_ID --yes
+          echo "$RAILWAY_TOKEN" | railway link $RAILWAY_PROJECT_ID
           
           # Deploy
           echo "Starting deployment..."
           railway up --detach || {
             echo "Deployment failed, showing logs..."
-            railway logs
+            railway logs || true
             exit 1
           }
 

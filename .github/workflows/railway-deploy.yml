@@ -48,7 +48,7 @@ jobs:
           EOF
 
       - name: Deploy to Railway
-        working-directory: SpeedType/backend
+        working-directory: SpeedType
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
